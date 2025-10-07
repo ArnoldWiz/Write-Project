@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,16 +22,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
-
+import androidx.navigation.navArgument
 import com.chear.planit.ui.theme.AppTheme
 
-// Objeto para centralizar todas las rutas de navegación
 object Rutas {
-    const val NOTAS_SCREEN = "notas"
-    const val RECORDATORIOS_SCREEN = "recordatorios"
-    const val AGREGAR_NOTAS_SCREEN = "agregar_nota"
-    const val AGREGAR_RECORDATORIO_SCREEN = "agregar_recordatorio"
+    const val PANTALLA_NOTAS = "notas"
+    const val PANTALLA_RECORDATORIOS = "recordatorios"
+    const val PANTALLA_DETALLE_NOTA = "detalle_nota"
+    const val PANTALLA_DETALLE_RECORDATORIO = "detalle_recordatorio"
 }
 
 class MainActivity : ComponentActivity() {
@@ -49,36 +50,39 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PlanItApp() {
     val navController = rememberNavController()
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val rutaActual = navBackStackEntry?.destination?.route
+
+    val esPantallaPrincipal = rutaActual == Rutas.PANTALLA_NOTAS || rutaActual == Rutas.PANTALLA_RECORDATORIOS
 
     Scaffold(
         topBar = {
-            if (currentRoute == Rutas.NOTAS_SCREEN || currentRoute == Rutas.RECORDATORIOS_SCREEN) {
+            if (esPantallaPrincipal) {
                 TopAppBar(
                     title = {
                         Text(
                             text = "PlanIt",
                             modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
+                            textAlign = TextAlign.Left,
                             fontWeight = FontWeight.Bold,
                             fontSize = 24.sp
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.tertiaryContainer
                     )
                 )
             }
         },
         floatingActionButton = {
-            if (currentRoute == Rutas.NOTAS_SCREEN || currentRoute == Rutas.RECORDATORIOS_SCREEN) {
+            if (esPantallaPrincipal) {
                 FloatingActionButton(
                     onClick = {
-                        if (currentRoute == Rutas.NOTAS_SCREEN) {
-                            navController.navigate(Rutas.AGREGAR_NOTAS_SCREEN)
+                        if (rutaActual == Rutas.PANTALLA_NOTAS) {
+                            navController.navigate(Rutas.PANTALLA_DETALLE_NOTA)
                         } else {
-                            navController.navigate(Rutas.AGREGAR_RECORDATORIO_SCREEN)
+                            navController.navigate(Rutas.PANTALLA_DETALLE_RECORDATORIO)
                         }
                     },
                     shape = CircleShape,
@@ -91,42 +95,64 @@ fun PlanItApp() {
         },
         floatingActionButtonPosition = FabPosition.Center,
         bottomBar = {
-            if (currentRoute == Rutas.NOTAS_SCREEN || currentRoute == Rutas.RECORDATORIOS_SCREEN) {
+            if (esPantallaPrincipal) {
                 BottomAppBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ) {
                     NavigationBarItem(
-                        selected = currentRoute == Rutas.NOTAS_SCREEN,
-                        onClick = { navController.navigate(Rutas.NOTAS_SCREEN) },
+                        selected = rutaActual == Rutas.PANTALLA_NOTAS,
+                        onClick = { navController.navigate(Rutas.PANTALLA_NOTAS) },
                         icon = { Icon(Icons.Default.Edit, contentDescription = "Notas") },
                         label = { Text("Notas") }
                     )
                     NavigationBarItem(
-                        selected = currentRoute == Rutas.RECORDATORIOS_SCREEN,
-                        onClick = { navController.navigate(Rutas.RECORDATORIOS_SCREEN) },
+                        selected = rutaActual == Rutas.PANTALLA_RECORDATORIOS,
+                        onClick = { navController.navigate(Rutas.PANTALLA_RECORDATORIOS) },
                         icon = { Icon(Icons.Default.DateRange, contentDescription = "Recordatorios") },
                         label = { Text("Recordatorios") }
                     )
                 }
             }
         }
-    ) { innerPadding ->
+    ) { paddingInterno ->
         NavHost(
             navController = navController,
-            startDestination = Rutas.NOTAS_SCREEN,
-            modifier = Modifier.padding(innerPadding)
+            startDestination = Rutas.PANTALLA_NOTAS,
+            modifier = Modifier.padding(paddingInterno)
         ) {
-            composable(Rutas.NOTAS_SCREEN) {
-                NotasScreen()
+            composable(Rutas.PANTALLA_NOTAS) {
+                PantallaNotas(
+                    alHacerClickEnNota = { idDeLaNota ->
+                        navController.navigate("${Rutas.PANTALLA_DETALLE_NOTA}/$idDeLaNota")
+                    }
+                )
             }
-            composable(Rutas.RECORDATORIOS_SCREEN) {
-                RecordatoriosScreen()
+            composable(Rutas.PANTALLA_RECORDATORIOS) {
+                PantallaRecordatorios(
+                    alHacerClickEnRecordatorio = { idDelRecordatorio ->
+                        navController.navigate("${Rutas.PANTALLA_DETALLE_RECORDATORIO}/$idDelRecordatorio")
+                    }
+                )
             }
-            composable(Rutas.AGREGAR_NOTAS_SCREEN) {
-                AgregarNotaScreen(onNavigateBack = { navController.popBackStack() })
+            composable(
+                route = "${Rutas.PANTALLA_DETALLE_NOTA}/{idNota}",
+                arguments = listOf(navArgument("idNota") { type = NavType.StringType; nullable = true })
+            ) { navBackStackEntry ->
+                val idNota = navBackStackEntry.arguments?.getString("idNota")
+                PantallaDetalleNota(idDeLaNota = idNota, alNavegarAtras = { navController.popBackStack() })
             }
-            composable(Rutas.AGREGAR_RECORDATORIO_SCREEN) {
-                AgregarRecordatorioScreen(onNavigateBack = { navController.popBackStack() })
+            composable(Rutas.PANTALLA_DETALLE_NOTA) {
+                PantallaDetalleNota(idDeLaNota = null, alNavegarAtras = { navController.popBackStack() })
+            }
+            composable(
+                route = "${Rutas.PANTALLA_DETALLE_RECORDATORIO}/{idRecordatorio}",
+                arguments = listOf(navArgument("idRecordatorio") { type = NavType.StringType; nullable = true })
+            ) { navBackStackEntry ->
+                val idRecordatorio = navBackStackEntry.arguments?.getString("idRecordatorio")
+                PantallaDetalleRecordatorio(idDelRecordatorio = idRecordatorio, alNavegarAtras = { navController.popBackStack() })
+            }
+            composable(Rutas.PANTALLA_DETALLE_RECORDATORIO) {
+                PantallaDetalleRecordatorio(idDelRecordatorio = null, alNavegarAtras = { navController.popBackStack() })
             }
         }
     }
@@ -134,7 +160,7 @@ fun PlanItApp() {
 
 
 @Composable
-fun NotasScreen() {
+fun PantallaNotas(alHacerClickEnNota: (String) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -146,14 +172,17 @@ fun NotasScreen() {
             Text("NOTAS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
         }
-        items(4) {
-            NoteItem(isReminder = false)
+        items(items = (0..3).toList(), key = { it }) { idNota ->
+            ElementoDeLista(
+                esRecordatorio = false,
+                alHacerClick = { alHacerClickEnNota(idNota.toString()) }
+            )
         }
     }
 }
 
 @Composable
-fun RecordatoriosScreen() {
+fun PantallaRecordatorios(alHacerClickEnRecordatorio: (String) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -165,47 +194,54 @@ fun RecordatoriosScreen() {
             Text("RECORDATORIOS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
         }
-        items(4) {
-            NoteItem(isReminder = true)
+        items(items = (0..3).toList(), key = { it }) { idRecordatorio ->
+            ElementoDeLista(
+                esRecordatorio = true,
+                alHacerClick = { alHacerClickEnRecordatorio(idRecordatorio.toString()) }
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AgregarNotaScreen(onNavigateBack: () -> Unit) {
+fun PantallaDetalleNota(idDeLaNota: String?, alNavegarAtras: () -> Unit) {
+    val estaEditando = idDeLaNota != null
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crear Nota") },
+                title = { Text(if (estaEditando) "Editar Nota" else "Crear Nota") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { // Botón para volver atrás
+                    IconButton(onClick = alNavegarAtras) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
-                    Button(onClick = { onNavigateBack() }) {
+                    Button(onClick = alNavegarAtras) {
                         Text("Guardar")
                     }
                 }
             )
         }
-    ) { innerPadding ->
+    ) { paddingInterno ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(paddingInterno)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            val titulo = if (estaEditando) "Título de la nota $idDeLaNota" else ""
+            val cuerpo = if (estaEditando) "Contenido de la nota $idDeLaNota..." else ""
+
             OutlinedTextField(
-                value = "",
+                value = titulo,
                 onValueChange = {},
                 label = { Text("Título") },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
-                value = "",
+                value = cuerpo,
                 onValueChange = {},
                 label = { Text("Cuerpo de la nota...") },
                 modifier = Modifier
@@ -223,33 +259,36 @@ fun AgregarNotaScreen(onNavigateBack: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AgregarRecordatorioScreen(onNavigateBack: () -> Unit) {
+fun PantallaDetalleRecordatorio(idDelRecordatorio: String?, alNavegarAtras: () -> Unit) {
+    val estaEditando = idDelRecordatorio != null
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crear Recordatorio") },
+                title = { Text(if (estaEditando) "Editar Recordatorio" else "Crear Recordatorio") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = alNavegarAtras) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
-                    Button(onClick = { onNavigateBack() }) {
+                    Button(onClick = alNavegarAtras) {
                         Text("Guardar")
                     }
                 }
             )
         }
-    ) { innerPadding ->
+    ) { paddingInterno ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(paddingInterno)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            val titulo = if (estaEditando) "Título del recordatorio $idDelRecordatorio" else ""
+
             OutlinedTextField(
-                value = "",
+                value = titulo,
                 onValueChange = {},
                 label = { Text("Título") },
                 modifier = Modifier.fillMaxWidth()
@@ -279,11 +318,13 @@ fun AgregarRecordatorioScreen(onNavigateBack: () -> Unit) {
 }
 
 @Composable
-fun NoteItem(isReminder: Boolean) {
-    var isChecked by remember { mutableStateOf(false) }
+fun ElementoDeLista(esRecordatorio: Boolean, alHacerClick: () -> Unit) {
+    var estaMarcado by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = alHacerClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
@@ -293,10 +334,10 @@ fun NoteItem(isReminder: Boolean) {
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isReminder) {
+            if (esRecordatorio) {
                 Checkbox(
-                    checked = isChecked,
-                    onCheckedChange = { isChecked = it }
+                    checked = estaMarcado,
+                    onCheckedChange = { estaMarcado = it }
                 )
             }
             Column(modifier = Modifier
@@ -316,7 +357,7 @@ fun NoteItem(isReminder: Boolean) {
 
 @Preview(showBackground = true)
 @Composable
-fun PlanItAppPreview() {
+fun VistaPreviaApp() {
     AppTheme {
         PlanItApp()
     }
@@ -324,16 +365,16 @@ fun PlanItAppPreview() {
 
 @Preview(showBackground = true)
 @Composable
-fun AddNoteScreenPreview() {
+fun VistaPreviaPantallaDetalleNota() {
     AppTheme {
-        AgregarNotaScreen(onNavigateBack = {})
+        PantallaDetalleNota(idDeLaNota = "123", alNavegarAtras = {})
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun AddReminderScreenPreview() {
+fun VistaPreviaPantallaDetalleRecordatorio() {
     AppTheme {
-        AgregarRecordatorioScreen (onNavigateBack = {})
+        PantallaDetalleRecordatorio (idDelRecordatorio = null, alNavegarAtras = {})
     }
 }
