@@ -1,4 +1,4 @@
-package com.chear.readit.ui.theme
+package com.chear.planit.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
@@ -8,7 +8,8 @@ import androidx.compose.ui.unit.sp
 
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.googlefonts.Font
-import com.chear.readit.R
+import com.chear.planit.R
+
 
 val provider = GoogleFont.Provider(
     providerAuthority = "com.google.android.gms.fonts",

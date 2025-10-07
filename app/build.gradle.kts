@@ -5,12 +5,12 @@ plugins {
 }
 
 android {
-    namespace = "com.chear.readit"
+    namespace = "com.chear.planit"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.chear.readit"
-        minSdk = 24
+        applicationId = "com.chear.planit"
+        minSdk = 21
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -41,7 +41,6 @@ android {
 
 dependencies {
 
-    implementation("androidx.navigation:navigation-compose:2.8.0-beta05")
     implementation("androidx.compose.ui:ui-text-google-fonts:1.6.8")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -51,6 +50,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -58,5 +58,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
 }

@@ -1,4 +1,4 @@
-package com.chear.readit.ui.theme
+package com.chear.planit.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -13,7 +13,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import com.chear.readit.ui.theme.AppTypography
 
 @Immutable
 data class ExtendedColorScheme(
@@ -315,7 +314,7 @@ val unspecified_scheme = ColorFamily(
 )
 
 @Composable
-fun ReadItTheme(
+fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,

@@ -1,4 +1,4 @@
-package com.chear.readit
+package com.chear.planit
 
 import org.junit.Test
 

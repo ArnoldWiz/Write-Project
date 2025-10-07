@@ -1,4 +1,4 @@
-package com.chear.readit.ui.theme
+package com.chear.planit.ui.theme
 import androidx.compose.ui.graphics.Color
 
 val primaryLight = Color(0xFF794F81)
