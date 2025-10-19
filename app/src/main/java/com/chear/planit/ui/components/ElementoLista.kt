@@ -25,8 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ElementoDeLista(esRecordatorio: Boolean, alHacerClick: () -> Unit) {
-    var estaMarcado by remember { mutableStateOf(false) }
+fun ListElement(isReminder: Boolean, alHacerClick: () -> Unit) {
+    var checked by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -41,10 +41,10 @@ fun ElementoDeLista(esRecordatorio: Boolean, alHacerClick: () -> Unit) {
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (esRecordatorio) {
+            if (isReminder) {
                 Checkbox(
-                    checked = estaMarcado,
-                    onCheckedChange = { estaMarcado = it }
+                    checked = checked,
+                    onCheckedChange = { checked = it }
                 )
             }
             Column(modifier = Modifier

@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp") version "1.9.23-1.0.19"
+    id("kotlin-kapt")
 }
 
 android {
@@ -40,6 +42,12 @@ android {
 }
 
 dependencies {
+    val room_version = "2.6.1"
+
+    //Room
+    implementation("androidx.room:room-runtime:$room_version")
+    kapt("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
 
     implementation("androidx.compose.ui:ui-text-google-fonts:1.6.8")
     implementation(libs.androidx.core.ktx)

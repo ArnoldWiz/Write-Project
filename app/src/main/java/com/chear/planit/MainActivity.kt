@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.compose.ui.tooling.preview.Preview
-import com.chear.planit.ui.screens.PantallaDetalleNota
-import com.chear.planit.ui.screens.PantallaDetalleRecordatorio
+import com.chear.planit.ui.screens.NoteDetailScreen
+import com.chear.planit.ui.screens.ReminderDetailScreen
 import com.chear.planit.ui.theme.AppTheme
 import com.chear.planit.ui.navigation.PlanItApp
 
@@ -37,7 +37,7 @@ fun VistaPreviaApp() {
 @Composable
 fun VistaPreviaPantallaDetalleNota() {
     AppTheme {
-        PantallaDetalleNota(idDeLaNota = "123", alNavegarAtras = {})
+        NoteDetailScreen(noteId = "123", onNavigateBack = {})
     }
 }
 
@@ -45,6 +45,6 @@ fun VistaPreviaPantallaDetalleNota() {
 @Composable
 fun VistaPreviaPantallaDetalleRecordatorio() {
     AppTheme {
-        PantallaDetalleRecordatorio (idDelRecordatorio = null, alNavegarAtras = {})
+        ReminderDetailScreen (reminderId = null, onNavigateBack = {})
     }
 }

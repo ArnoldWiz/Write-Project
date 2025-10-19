@@ -30,16 +30,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.chear.planit.ui.screens.PantallaDetalleNota
-import com.chear.planit.ui.screens.PantallaDetalleRecordatorio
-import com.chear.planit.ui.screens.PantallaNotas
-import com.chear.planit.ui.screens.PantallaRecordatorios
+import com.chear.planit.ui.screens.NoteDetailScreen
+import com.chear.planit.ui.screens.ReminderDetailScreen
+import com.chear.planit.ui.screens.NotesScreen
+import com.chear.planit.ui.screens.RemindersScreen
 
-object Rutas {
-    const val PANTALLA_NOTAS = "notas"
-    const val PANTALLA_RECORDATORIOS = "recordatorios"
-    const val PANTALLA_DETALLE_NOTA = "detalle_nota"
-    const val PANTALLA_DETALLE_RECORDATORIO = "detalle_recordatorio"
+object Ruts {
+    const val NOTES_SCREEN = "notes"
+    const val REMINDERS_SCREEN = "reminders"
+    const val DETAIL_NOTE_SCREEN = "detail_note"
+    const val DETAIL_REMINDER_SCREEN = "detail_reminder"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,11 +49,11 @@ fun PlanItApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val rutaActual = navBackStackEntry?.destination?.route
 
-    val esPantallaPrincipal = rutaActual == Rutas.PANTALLA_NOTAS || rutaActual == Rutas.PANTALLA_RECORDATORIOS
+    val isMainScreen = rutaActual == Ruts.NOTES_SCREEN || rutaActual == Ruts.REMINDERS_SCREEN
 
     Scaffold(
         topBar = {
-            if (esPantallaPrincipal) {
+            if (isMainScreen) {
                 TopAppBar(
                     title = {
                         Text(
@@ -72,13 +72,13 @@ fun PlanItApp() {
             }
         },
         floatingActionButton = {
-            if (esPantallaPrincipal) {
+            if (isMainScreen) {
                 FloatingActionButton(
                     onClick = {
-                        if (rutaActual == Rutas.PANTALLA_NOTAS) {
-                            navController.navigate(Rutas.PANTALLA_DETALLE_NOTA)
+                        if (rutaActual == Ruts.NOTES_SCREEN) {
+                            navController.navigate(Ruts.DETAIL_NOTE_SCREEN)
                         } else {
-                            navController.navigate(Rutas.PANTALLA_DETALLE_RECORDATORIO)
+                            navController.navigate(Ruts.DETAIL_REMINDER_SCREEN)
                         }
                     },
                     shape = CircleShape,
@@ -91,19 +91,19 @@ fun PlanItApp() {
         },
         floatingActionButtonPosition = FabPosition.Center,
         bottomBar = {
-            if (esPantallaPrincipal) {
+            if (isMainScreen) {
                 BottomAppBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ) {
                     NavigationBarItem(
-                        selected = rutaActual == Rutas.PANTALLA_NOTAS,
-                        onClick = { navController.navigate(Rutas.PANTALLA_NOTAS) },
+                        selected = rutaActual == Ruts.NOTES_SCREEN,
+                        onClick = { navController.navigate(Ruts.NOTES_SCREEN) },
                         icon = { Icon(Icons.Default.Edit, contentDescription = "Notas") },
                         label = { Text("Notas") }
                     )
                     NavigationBarItem(
-                        selected = rutaActual == Rutas.PANTALLA_RECORDATORIOS,
-                        onClick = { navController.navigate(Rutas.PANTALLA_RECORDATORIOS) },
+                        selected = rutaActual == Ruts.REMINDERS_SCREEN,
+                        onClick = { navController.navigate(Ruts.REMINDERS_SCREEN) },
                         icon = { Icon(Icons.Default.DateRange, contentDescription = "Recordatorios") },
                         label = { Text("Recordatorios") }
                     )
@@ -113,42 +113,42 @@ fun PlanItApp() {
     ) { paddingInterno ->
         NavHost(
             navController = navController,
-            startDestination = Rutas.PANTALLA_NOTAS,
+            startDestination = Ruts.NOTES_SCREEN,
             modifier = Modifier.padding(paddingInterno)
         ) {
-            composable(Rutas.PANTALLA_NOTAS) {
-                PantallaNotas(
-                    alHacerClickEnNota = { idDeLaNota ->
-                        navController.navigate("${Rutas.PANTALLA_DETALLE_NOTA}/$idDeLaNota")
+            composable(Ruts.NOTES_SCREEN) {
+                NotesScreen(
+                    onNoteClick = { idDeLaNota ->
+                        navController.navigate("${Ruts.DETAIL_NOTE_SCREEN}/$idDeLaNota")
                     }
                 )
             }
-            composable(Rutas.PANTALLA_RECORDATORIOS) {
-                PantallaRecordatorios(
-                    alHacerClickEnRecordatorio = { idDelRecordatorio ->
-                        navController.navigate("${Rutas.PANTALLA_DETALLE_RECORDATORIO}/$idDelRecordatorio")
+            composable(Ruts.REMINDERS_SCREEN) {
+                RemindersScreen(
+                    onReminderClick = { idDelRecordatorio ->
+                        navController.navigate("${Ruts.DETAIL_REMINDER_SCREEN}/$idDelRecordatorio")
                     }
                 )
             }
             composable(
-                route = "${Rutas.PANTALLA_DETALLE_NOTA}/{idNota}",
+                route = "${Ruts.DETAIL_NOTE_SCREEN}/{idNota}",
                 arguments = listOf(navArgument("idNota") { type = NavType.StringType; nullable = true })
             ) { navBackStackEntry ->
                 val idNota = navBackStackEntry.arguments?.getString("idNota")
-                PantallaDetalleNota(idDeLaNota = idNota, alNavegarAtras = { navController.popBackStack() })
+                NoteDetailScreen(noteId = idNota, onNavigateBack = { navController.popBackStack() })
             }
-            composable(Rutas.PANTALLA_DETALLE_NOTA) {
-                PantallaDetalleNota(idDeLaNota = null, alNavegarAtras = { navController.popBackStack() })
+            composable(Ruts.DETAIL_NOTE_SCREEN) {
+                NoteDetailScreen(noteId = null, onNavigateBack = { navController.popBackStack() })
             }
             composable(
-                route = "${Rutas.PANTALLA_DETALLE_RECORDATORIO}/{idRecordatorio}",
+                route = "${Ruts.DETAIL_REMINDER_SCREEN}/{idRecordatorio}",
                 arguments = listOf(navArgument("idRecordatorio") { type = NavType.StringType; nullable = true })
             ) { navBackStackEntry ->
                 val idRecordatorio = navBackStackEntry.arguments?.getString("idRecordatorio")
-                PantallaDetalleRecordatorio(idDelRecordatorio = idRecordatorio, alNavegarAtras = { navController.popBackStack() })
+                ReminderDetailScreen(reminderId = idRecordatorio, onNavigateBack = { navController.popBackStack() })
             }
-            composable(Rutas.PANTALLA_DETALLE_RECORDATORIO) {
-                PantallaDetalleRecordatorio(idDelRecordatorio = null, alNavegarAtras = { navController.popBackStack() })
+            composable(Ruts.DETAIL_REMINDER_SCREEN) {
+                ReminderDetailScreen(reminderId = null, onNavigateBack = { navController.popBackStack() })
             }
         }
     }

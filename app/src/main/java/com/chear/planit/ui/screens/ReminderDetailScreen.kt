@@ -25,19 +25,19 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaDetalleRecordatorio(idDelRecordatorio: String?, alNavegarAtras: () -> Unit) {
-    val editando = idDelRecordatorio != null
+fun ReminderDetailScreen(reminderId: String?, onNavigateBack: () -> Unit) {
+    val isEditing = reminderId != null
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editando) "Editar Recordatorio" else "Crear Recordatorio") },
+                title = { Text(if (isEditing) "Editar Recordatorio" else "Crear Recordatorio") },
                 navigationIcon = {
-                    IconButton(onClick = alNavegarAtras) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
-                    Button(onClick = alNavegarAtras) {
+                    Button(onClick = onNavigateBack) {
                         Text("Guardar")
                     }
                 }
@@ -51,7 +51,7 @@ fun PantallaDetalleRecordatorio(idDelRecordatorio: String?, alNavegarAtras: () -
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val titulo = if (editando) "Título del recordatorio $idDelRecordatorio" else ""
+            val titulo = if (isEditing) "Título del recordatorio $reminderId" else ""
 
             OutlinedTextField(
                 value = titulo,

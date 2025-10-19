@@ -24,19 +24,19 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaDetalleNota(idDeLaNota: String?, alNavegarAtras: () -> Unit) {
-    val editando = idDeLaNota != null
+fun NoteDetailScreen(noteId: String?, onNavigateBack: () -> Unit) {
+    val isEditing = noteId != null
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editando) "Editar Nota" else "Crear Nota") },
+                title = { Text(if (isEditing) "Editar Nota" else "Crear Nota") },
                 navigationIcon = {
-                    IconButton(onClick = alNavegarAtras) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
-                    Button(onClick = alNavegarAtras) {
+                    Button(onClick = onNavigateBack) {
                         Text("Guardar")
                     }
                 }
@@ -50,8 +50,8 @@ fun PantallaDetalleNota(idDeLaNota: String?, alNavegarAtras: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val titulo = if (editando) "Título de la nota $idDeLaNota" else ""
-            val cuerpo = if (editando) "Contenido de la nota $idDeLaNota..." else ""
+            val titulo = if (isEditing) "Título de la nota $noteId" else ""
+            val cuerpo = if (isEditing) "Contenido de la nota $noteId..." else ""
 
             OutlinedTextField(
                 value = titulo,

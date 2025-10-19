@@ -14,9 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.chear.planit.ui.components.ElementoDeLista
+import com.chear.planit.ui.components.ListElement
 @Composable
-fun PantallaNotas(alHacerClickEnNota: (String) -> Unit) {
+fun NotesScreen(onNoteClick: (String) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -29,9 +29,9 @@ fun PantallaNotas(alHacerClickEnNota: (String) -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
         }
         items(items = (0..3).toList(), key = { it }) { idNota ->
-            ElementoDeLista(
-                esRecordatorio = false,
-                alHacerClick = { alHacerClickEnNota(idNota.toString()) }
+            ListElement(
+                isReminder = false,
+                alHacerClick = { onNoteClick(idNota.toString()) }
             )
         }
     }

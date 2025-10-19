@@ -14,11 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.chear.planit.ui.components.ElementoDeLista
+import com.chear.planit.ui.components.ListElement
 
 
 @Composable
-fun PantallaRecordatorios(alHacerClickEnRecordatorio: (String) -> Unit) {
+fun RemindersScreen(onReminderClick: (String) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -31,9 +31,9 @@ fun PantallaRecordatorios(alHacerClickEnRecordatorio: (String) -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
         }
         items(items = (0..3).toList(), key = { it }) { idRecordatorio ->
-            ElementoDeLista(
-                esRecordatorio = true,
-                alHacerClick = { alHacerClickEnRecordatorio(idRecordatorio.toString()) }
+            ListElement(
+                isReminder = true,
+                alHacerClick = { onReminderClick(idRecordatorio.toString()) }
             )
         }
     }
