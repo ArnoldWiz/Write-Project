@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
 @Database(entities = [Note::class, Reminder::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
-    abstract fun notaDao(): NoteDao
+    abstract fun noteDao(): NoteDao
     abstract fun reminderDao(): ReminderDao
 
     companion object {

@@ -1,42 +1,53 @@
 package com.chear.planit.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.chear.planit.data.Note
+import com.chear.planit.ui.NoteViewModel
+import kotlin.Int
+import kotlin.String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteDetailScreen(noteId: String?, onNavigateBack: () -> Unit) {
+fun NoteDetailScreen(
+    noteId: String?,
+    onNavigateBack: () -> Unit,
+    noteViewModel: NoteViewModel // 👈 lo recibimos del ViewModel
+) {
     val isEditing = noteId != null
+
+    var titulo by remember { mutableStateOf("") }
+    var cuerpo by remember { mutableStateOf("") }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditing) "Editar Nota" else "Crear Nota") },
+                title = { Text(if (isEditing) "Editar Nota" else "Nueva Nota") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
-                    Button(onClick = onNavigateBack) {
+                    Button(
+                        onClick = {
+                            if (titulo.isNotBlank() || cuerpo.isNotBlank()) {
+                                // 👇 Guardamos en la BD usando el ViewModel
+                                noteViewModel.addNote(
+                                    Note(
+                                        title = titulo,
+                                        body = cuerpo
+                                    )
+                                )
+                            }
+                            onNavigateBack()
+                        }
+                    ) {
                         Text("Guardar")
                     }
                 }
@@ -50,28 +61,20 @@ fun NoteDetailScreen(noteId: String?, onNavigateBack: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val titulo = if (isEditing) "Título de la nota $noteId" else ""
-            val cuerpo = if (isEditing) "Contenido de la nota $noteId..." else ""
-
             OutlinedTextField(
                 value = titulo,
-                onValueChange = {},
+                onValueChange = { titulo = it },
                 label = { Text("Título") },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = cuerpo,
-                onValueChange = {},
-                label = { Text("Cuerpo de la nota...") },
+                onValueChange = { cuerpo = it },
+                label = { Text("Cuerpo") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             )
-            Button(onClick = {  }) {
-                Icon(Icons.Default.Add, contentDescription = "Adjuntar")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Adjuntar Archivo")
-            }
         }
     }
 }
