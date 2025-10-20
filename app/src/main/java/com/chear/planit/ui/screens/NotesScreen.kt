@@ -10,13 +10,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chear.planit.ui.components.ListElement
+import com.chear.planit.ui.NoteViewModel
+
 @Composable
-fun NotesScreen(onNoteClick: (String) -> Unit) {
+fun NotesScreen(
+    noteViewModel: NoteViewModel,
+    onNoteClick: (String) -> Unit
+) {
+    // 🔁 Observa el flujo de notas
+    val notes by noteViewModel.notes.collectAsState()
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -28,11 +38,21 @@ fun NotesScreen(onNoteClick: (String) -> Unit) {
             Text("NOTAS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
         }
-        items(items = (0..3).toList(), key = { it }) { idNota ->
-            ListElement(
-                isReminder = false,
-                alHacerClick = { onNoteClick(idNota.toString()) }
-            )
+
+        if (notes.isEmpty()) {
+            item {
+                Text("No hay notas todavía", style = MaterialTheme.typography.bodyLarge)
+            }
+        } else {
+            items(notes, key = { it.id }) { note ->
+                ListElement(
+                    note = note,
+                    isReminder = false,
+                    alHacerClick = { onNoteClick(note.id.toString()) },
+                    onDeleteClick = { noteViewModel.delete(note) } // opcional 🗑️
+                )
+
+        }
         }
     }
 }

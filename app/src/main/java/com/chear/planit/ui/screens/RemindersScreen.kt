@@ -30,11 +30,14 @@ fun RemindersScreen(onReminderClick: (String) -> Unit) {
             Text("RECORDATORIOS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
         }
-        items(items = (0..3).toList(), key = { it }) { idRecordatorio ->
-            ListElement(
-                isReminder = true,
-                alHacerClick = { onReminderClick(idRecordatorio.toString()) }
-            )
+       items(notes, key = { it.id }) { note ->
+          ListElement(
+            note = note,
+          isReminder = false,
+       alHacerClick = { onNoteClick(note.id.toString()) },
+        onDeleteClick = { noteViewModel.delete(note) } // opcional 🗑️
+        )
         }
+
     }
 }

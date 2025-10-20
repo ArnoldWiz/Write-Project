@@ -38,8 +38,9 @@ import com.chear.planit.ui.screens.NoteDetailScreen
 import com.chear.planit.ui.screens.ReminderDetailScreen
 import com.chear.planit.ui.screens.NotesScreen
 import com.chear.planit.ui.screens.RemindersScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chear.planit.ui.NoteViewModelFactory
 
-// 📍 Rutas de navegación
 object Ruts {
     const val NOTES_SCREEN = "notes"
     const val REMINDERS_SCREEN = "reminders"
@@ -49,11 +50,14 @@ object Ruts {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlanItApp(noteRepository: NoteRepository,
-              reminderRepository: ReminderRepository
+fun PlanItApp(
+    noteRepository: NoteRepository,
+    reminderRepository: ReminderRepository
 ) {
-    val noteViewModel = NoteViewModel(noteRepository)
-    val reminderViewModel = ReminderViewModel(reminderRepository)
+    // ✅ Crea los ViewModels usando las factories correctas
+    val noteViewModel: NoteViewModel = viewModel(factory = NoteViewModelFactory(noteRepository))
+    //val reminderViewModel: ReminderViewModel = viewModel(factory = ReminderViewModelFactory(reminderRepository))
+
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val rutaActual = navBackStackEntry?.destination?.route
@@ -101,9 +105,7 @@ fun PlanItApp(noteRepository: NoteRepository,
         floatingActionButtonPosition = FabPosition.Center,
         bottomBar = {
             if (isMainScreen) {
-                BottomAppBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ) {
+                BottomAppBar(containerColor = MaterialTheme.colorScheme.surface) {
                     NavigationBarItem(
                         selected = rutaActual == Ruts.NOTES_SCREEN,
                         onClick = { navController.navigate(Ruts.NOTES_SCREEN) },
@@ -128,11 +130,13 @@ fun PlanItApp(noteRepository: NoteRepository,
             // Pantalla principal de notas
             composable(Ruts.NOTES_SCREEN) {
                 NotesScreen(
+                    noteViewModel = noteViewModel, // ✅ ahora sí pasamos el ViewModel
                     onNoteClick = { idDeLaNota ->
                         navController.navigate("${Ruts.DETAIL_NOTE_SCREEN}/$idDeLaNota")
                     }
                 )
             }
+
             // Pantalla principal de recordatorios
             composable(Ruts.REMINDERS_SCREEN) {
                 RemindersScreen(
@@ -141,38 +145,54 @@ fun PlanItApp(noteRepository: NoteRepository,
                     }
                 )
             }
-            // Detalle de nota (con id)
+
+            // Crear nueva nota
             composable(Ruts.DETAIL_NOTE_SCREEN) {
                 NoteDetailScreen(
                     noteId = null,
                     onNavigateBack = { navController.popBackStack() },
-                    noteViewModel = noteViewModel // 👈 agregado
+                    noteViewModel = noteViewModel
                 )
             }
 
+            // Editar nota existente
             composable(
                 route = "${Ruts.DETAIL_NOTE_SCREEN}/{idNota}",
-                arguments = listOf(navArgument("idNota") { type = NavType.StringType; nullable = true })
-            ) { navBackStackEntry ->
-                val idNota = navBackStackEntry.arguments?.getString("idNota")
+                arguments = listOf(navArgument("idNota") {
+                    type = NavType.StringType
+                    nullable = true
+                })
+            ) { backStackEntry ->
+                val idNota = backStackEntry.arguments?.getString("idNota")
                 NoteDetailScreen(
                     noteId = idNota,
                     onNavigateBack = { navController.popBackStack() },
-                    noteViewModel = noteViewModel // 👈 agregado
+                    noteViewModel = noteViewModel
                 )
             }
-            // Detalle de recordatorio (con id)
+
+            // Recordatorios (igual que antes)
             composable(
                 route = "${Ruts.DETAIL_REMINDER_SCREEN}/{idRecordatorio}",
-                arguments = listOf(navArgument("idRecordatorio") { type = NavType.StringType; nullable = true })
-            ) { navBackStackEntry ->
-                val idRecordatorio = navBackStackEntry.arguments?.getString("idRecordatorio")
-                ReminderDetailScreen(reminderId = idRecordatorio, onNavigateBack = { navController.popBackStack() })
+                arguments = listOf(navArgument("idRecordatorio") {
+                    type = NavType.StringType
+                    nullable = true
+                })
+            ) { backStackEntry ->
+                val idRecordatorio = backStackEntry.arguments?.getString("idRecordatorio")
+                ReminderDetailScreen(
+                    reminderId = idRecordatorio,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
-            // Detalle de recordatorio (nuevo)
+
             composable(Ruts.DETAIL_REMINDER_SCREEN) {
-                ReminderDetailScreen(reminderId = null, onNavigateBack = { navController.popBackStack() })
+                ReminderDetailScreen(
+                    reminderId = null,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }
 }
+
