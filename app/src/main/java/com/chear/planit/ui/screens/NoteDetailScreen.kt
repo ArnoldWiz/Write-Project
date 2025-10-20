@@ -20,19 +20,15 @@ fun NoteDetailScreen(
 ) {
     val isEditing = noteId != null
 
-    // Observa las notas desde el ViewModel (StateFlow -> State)
     val notes by noteViewModel.notes.collectAsState()
 
-    // Busca la nota a editar (si aplica)
     val noteToEdit: Note? = noteId?.toIntOrNull()?.let { id ->
         notes.find { it.id == id }
     }
 
-    // Estados del formulario (guardados entre recomposiciones)
     var titulo by rememberSaveable { mutableStateOf("") }
     var cuerpo by rememberSaveable { mutableStateOf("") }
 
-    // Carga los datos si estamos editando y la nota existe
     LaunchedEffect(key1 = noteToEdit) {
         noteToEdit?.let {
             titulo = it.title
@@ -52,17 +48,14 @@ fun NoteDetailScreen(
                 actions = {
                     Button(
                         onClick = {
-                            // Evita guardar si ambos campos están vacíos
                             if (titulo.isNotBlank() || cuerpo.isNotBlank()) {
                                 if (isEditing && noteToEdit != null) {
-                                    // Actualizar nota existente (con mismo id)
                                     val updated = noteToEdit.copy(
                                         title = titulo,
                                         body = cuerpo
                                     )
                                     noteViewModel.update(updated)
                                 } else {
-                                    // Insertar nueva nota
                                     val nueva = Note(
                                         title = titulo,
                                         body = cuerpo

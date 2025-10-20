@@ -24,7 +24,6 @@ fun NotesScreen(
     noteViewModel: NoteViewModel,
     onNoteClick: (String) -> Unit
 ) {
-    // 🔁 Observa el flujo de notas
     val notes by noteViewModel.notes.collectAsState()
 
     LazyColumn(

@@ -12,3 +12,4 @@ data class Reminder(
     val dateTime: Long,
     val isCompleted: Boolean = false
 )
+

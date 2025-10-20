@@ -11,18 +11,18 @@ import kotlinx.coroutines.flow.StateFlow
 
 class ReminderViewModel(private val repository: ReminderRepository) : ViewModel() {
 
-    val reminder: StateFlow<List<Reminder>> = repository.allReminders
+    val reminders: StateFlow<List<Reminder>> = repository.allReminders
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun addNote(reminder: Reminder) = viewModelScope.launch {
+    fun addReminder(reminder: Reminder) = viewModelScope.launch {
         repository.insert(reminder)
     }
 
-    fun update(reminder: Reminder) = viewModelScope.launch {
+    fun updateReminder(reminder: Reminder) = viewModelScope.launch {
         repository.update(reminder)
     }
 
-    fun delete(reminder: Reminder) = viewModelScope.launch {
+    fun deleteReminder(reminder: Reminder) = viewModelScope.launch {
         repository.delete(reminder)
     }
 }

@@ -11,15 +11,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chear.planit.data.Note
+import com.chear.planit.data.Reminder
 
 @Composable
 fun ListElement(
-    note: Note,                      // ✅ Recibimos la nota
+    note: Any, // ✅ puede ser Note o Reminder
     isReminder: Boolean = false,
     alHacerClick: () -> Unit,
     onDeleteClick: (() -> Unit)? = null
 ) {
     var checked by remember { mutableStateOf(false) }
+
+    val title: String
+    val body: String
+
+    // 🔁 Detecta si el objeto es Note o Reminder
+    when (note) {
+        is Note -> {
+            title = note.title
+            body = note.body
+        }
+        is Reminder -> {
+            title = note.title
+            body = note.description // usamos "description" del Reminder
+        }
+        else -> {
+            title = "Elemento desconocido"
+            body = ""
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -34,6 +54,7 @@ fun ListElement(
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // ✅ Checkbox solo si es un Reminder
             if (isReminder) {
                 Checkbox(
                     checked = checked,
@@ -47,11 +68,11 @@ fun ListElement(
                     .padding(start = 8.dp)
             ) {
                 Text(
-                    text = note.title.ifBlank { "Sin título" }, // ✅ Mostrar título real
+                    text = title.ifBlank { "Sin título" },
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = note.body.ifBlank { "Sin contenido" }, // ✅ Mostrar cuerpo real
+                    text = body.ifBlank { "Sin contenido" },
                     style = MaterialTheme.typography.bodySmall
                 )
             }

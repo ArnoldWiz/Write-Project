@@ -56,10 +56,11 @@ fun VistaPreviaPlanIt() {
     //}
 //}
 
-@Preview(showBackground = true)
+/*@Preview(showBackground = true)
 @Composable
 fun VistaPreviaPantallaDetalleRecordatorio() {
     AppTheme {
         ReminderDetailScreen(reminderId = null, onNavigateBack = {})
     }
 }
+*/
