@@ -15,7 +15,7 @@ import com.chear.planit.data.Reminder
 
 @Composable
 fun ListElement(
-    note: Any, // ✅ puede ser Note o Reminder
+    note: Any,
     isReminder: Boolean = false,
     alHacerClick: () -> Unit,
     onDeleteClick: (() -> Unit)? = null
@@ -25,7 +25,6 @@ fun ListElement(
     val title: String
     val body: String
 
-    // 🔁 Detecta si el objeto es Note o Reminder
     when (note) {
         is Note -> {
             title = note.title
@@ -33,7 +32,7 @@ fun ListElement(
         }
         is Reminder -> {
             title = note.title
-            body = note.description // usamos "description" del Reminder
+            body = note.description
         }
         else -> {
             title = "Elemento desconocido"
@@ -54,7 +53,7 @@ fun ListElement(
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ✅ Checkbox solo si es un Reminder
+
             if (isReminder) {
                 Checkbox(
                     checked = checked,

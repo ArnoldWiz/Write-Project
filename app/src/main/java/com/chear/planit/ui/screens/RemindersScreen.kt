@@ -24,7 +24,6 @@ fun RemindersScreen(
     reminderViewModel: ReminderViewModel,
     onReminderClick: (String) -> Unit
 ) {
-    // 🔁 Obtenemos los recordatorios desde el ViewModel
     val reminders by reminderViewModel.reminders.collectAsState()
 
     LazyColumn(
@@ -53,8 +52,8 @@ fun RemindersScreen(
         } else {
             items(reminders, key = { it.id }) { reminder ->
                 ListElement(
-                    note = reminder, // 👈 usamos el mismo parámetro que en NotesScreen
-                    isReminder = true, // 👈 indicamos que es un recordatorio
+                    note = reminder,
+                    isReminder = true,
                     alHacerClick = { onReminderClick(reminder.id.toString()) },
                     onDeleteClick = { reminderViewModel.deleteReminder(reminder) }
                 )

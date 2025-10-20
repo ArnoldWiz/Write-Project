@@ -20,20 +20,16 @@ fun ReminderDetailScreen(
 ) {
     val isEditing = reminderId != null
 
-    // Obtenemos la lista de recordatorios
     val reminders by reminderViewModel.reminders.collectAsState()
 
-    // Buscamos el recordatorio a editar si aplica
     val reminderToEdit: Reminder? = reminderId?.toIntOrNull()?.let { id ->
         reminders.find { it.id == id }
     }
 
-    // Estados para los campos
     var titulo by rememberSaveable { mutableStateOf("") }
     var descripcion by rememberSaveable { mutableStateOf("") }
     var fechaHora by rememberSaveable { mutableStateOf(System.currentTimeMillis()) }
 
-    // Si estamos editando, cargamos los datos existentes
     LaunchedEffect(key1 = reminderToEdit) {
         reminderToEdit?.let {
             titulo = it.title
@@ -56,7 +52,6 @@ fun ReminderDetailScreen(
                         onClick = {
                             if (titulo.isNotBlank() || descripcion.isNotBlank()) {
                                 if (isEditing && reminderToEdit != null) {
-                                    // Editamos
                                     val updated = reminderToEdit.copy(
                                         title = titulo,
                                         description = descripcion,
@@ -64,7 +59,6 @@ fun ReminderDetailScreen(
                                     )
                                     reminderViewModel.updateReminder(updated)
                                 } else {
-                                    // Creamos nuevo
                                     val nuevo = Reminder(
                                         title = titulo,
                                         description = descripcion,

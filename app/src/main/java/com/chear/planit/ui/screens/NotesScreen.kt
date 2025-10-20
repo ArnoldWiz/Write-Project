@@ -48,7 +48,7 @@ fun NotesScreen(
                     note = note,
                     isReminder = false,
                     alHacerClick = { onNoteClick(note.id.toString()) },
-                    onDeleteClick = { noteViewModel.delete(note) } // opcional 🗑️
+                    onDeleteClick = { noteViewModel.delete(note) }
                 )
 
         }
