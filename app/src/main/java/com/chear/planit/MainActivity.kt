@@ -5,17 +5,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.room.Room
-import com.chear.planit.ui.navigation.PlanItApp
-import com.chear.planit.ui.screens.NoteDetailScreen
-import com.chear.planit.ui.screens.ReminderDetailScreen
-import com.chear.planit.ui.theme.AppTheme
 import com.chear.planit.data.AppDatabase
 import com.chear.planit.data.NoteRepository
 import com.chear.planit.data.ReminderRepository
+import com.chear.planit.ui.navigation.PlanItApp
+import com.chear.planit.ui.theme.AppTheme
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +27,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                PlanItApp(noteRepository, reminderRepository)
+                val windowSize = calculateWindowSizeClass(this)
+                PlanItApp(noteRepository, reminderRepository, windowSize)
             }
         }
     }
@@ -43,27 +44,3 @@ fun VistaPreviaPlanIt() {
         )
     }
 }
-
-
-//@Preview(showBackground = true)
-//@Composable
-//fun VistaPreviaPantallaDetalleNota() {
-  //  val dummyViewModel = remember { NoteViewModel(noteRepository = null) }
-
-    //AppTheme {
-      //  NoteDetailScreen(
-        //    noteId = null,
-           // onNavigateBack = {},
-            //noteViewModel = dummyViewModel
-        //)
-    //}
-//}
-
-/*@Preview(showBackground = true)
-@Composable
-fun VistaPreviaPantallaDetalleRecordatorio() {
-    AppTheme {
-        ReminderDetailScreen(reminderId = null, onNavigateBack = {})
-    }
-}
-*/
