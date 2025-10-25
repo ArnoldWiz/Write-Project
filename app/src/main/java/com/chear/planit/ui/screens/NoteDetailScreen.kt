@@ -32,8 +32,8 @@ fun NoteDetailScreen(
         notes.find { it.id == id }
     }
 
-    var titulo by rememberSaveable { mutableStateOf("") }
-    var cuerpo by rememberSaveable { mutableStateOf("") }
+    var noteTitle by rememberSaveable { mutableStateOf("") }
+    var noteBody by rememberSaveable { mutableStateOf("") }
     var attachmentUri by rememberSaveable { mutableStateOf<String?>(null) }
 
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
@@ -45,8 +45,8 @@ fun NoteDetailScreen(
 
     LaunchedEffect(key1 = noteToEdit) {
         noteToEdit?.let {
-            titulo = it.title
-            cuerpo = it.body
+            noteTitle = it.title
+            noteBody = it.body
             attachmentUri = it.attachmentUri
         }
     }
@@ -63,18 +63,18 @@ fun NoteDetailScreen(
                 actions = {
                     Button(
                         onClick = {
-                            if (titulo.isNotBlank() || cuerpo.isNotBlank()) {
+                            if (noteTitle.isNotBlank() || noteBody.isNotBlank()) {
                                 if (isEditing && noteToEdit != null) {
                                     val updated = noteToEdit.copy(
-                                        title = titulo,
-                                        body = cuerpo,
+                                        title = noteTitle,
+                                        body = noteBody,
                                         attachmentUri = attachmentUri
                                     )
                                     noteViewModel.update(updated)
                                 } else {
                                     val nueva = Note(
-                                        title = titulo,
-                                        body = cuerpo,
+                                        title = noteTitle,
+                                        body = noteBody,
                                         attachmentUri = attachmentUri
                                     )
                                     noteViewModel.addNote(nueva)
@@ -97,14 +97,14 @@ fun NoteDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
-                value = titulo,
-                onValueChange = { titulo = it },
+                value = noteTitle,
+                onValueChange = { noteTitle = it },
                 label = { Text("Título") },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
-                value = cuerpo,
-                onValueChange = { cuerpo = it },
+                value = noteBody,
+                onValueChange = { noteBody = it },
                 label = { Text("Cuerpo") },
                 modifier = Modifier
                     .fillMaxWidth()

@@ -35,9 +35,9 @@ fun ReminderDetailScreen(
         reminders.find { it.id == id }
     }
 
-    var titulo by rememberSaveable { mutableStateOf("") }
-    var descripcion by rememberSaveable { mutableStateOf("") }
-    var fechaHora by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
+    var reminderTitle by rememberSaveable { mutableStateOf("") }
+    var reminderBody by rememberSaveable { mutableStateOf("") }
+    var reminderTimestamp by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     var attachmentUri by rememberSaveable { mutableStateOf<String?>(null) }
 
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
@@ -49,9 +49,9 @@ fun ReminderDetailScreen(
 
     LaunchedEffect(key1 = reminderToEdit) {
         reminderToEdit?.let {
-            titulo = it.title
-            descripcion = it.description
-            fechaHora = it.dateTime
+            reminderTitle = it.title
+            reminderBody = it.description
+            reminderTimestamp = it.dateTime
             attachmentUri = it.attachmentUri
         }
     }
@@ -68,20 +68,20 @@ fun ReminderDetailScreen(
                 actions = {
                     Button(
                         onClick = {
-                            if (titulo.isNotBlank() || descripcion.isNotBlank()) {
+                            if (reminderTitle.isNotBlank() || reminderBody.isNotBlank()) {
                                 if (isEditing && reminderToEdit != null) {
                                     val updated = reminderToEdit.copy(
-                                        title = titulo,
-                                        description = descripcion,
-                                        dateTime = fechaHora,
+                                        title = reminderTitle,
+                                        description = reminderBody,
+                                        dateTime = reminderTimestamp,
                                         attachmentUri = attachmentUri
                                     )
                                     reminderViewModel.updateReminder(updated)
                                 } else {
                                     val nuevo = Reminder(
-                                        title = titulo,
-                                        description = descripcion,
-                                        dateTime = fechaHora,
+                                        title = reminderTitle,
+                                        description = reminderBody,
+                                        dateTime = reminderTimestamp,
                                         attachmentUri = attachmentUri
                                     )
                                     reminderViewModel.addReminder(nuevo)
@@ -107,14 +107,14 @@ fun ReminderDetailScreen(
             var showTimePicker by remember { mutableStateOf(false) }
 
             val calendar = remember { Calendar.getInstance() }
-            calendar.timeInMillis = fechaHora
+            calendar.timeInMillis = reminderTimestamp
 
             val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
             val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
             OutlinedTextField(
-                value = titulo,
-                onValueChange = { titulo = it },
+                value = reminderTitle,
+                onValueChange = { reminderTitle = it },
                 label = { Text("Título") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -135,7 +135,7 @@ fun ReminderDetailScreen(
             }
 
             if (showDatePicker) {
-                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = fechaHora)
+                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = reminderTimestamp)
                 DatePickerDialog(
                     onDismissRequest = { showDatePicker = false },
                     confirmButton = {
@@ -148,7 +148,7 @@ fun ReminderDetailScreen(
                                         newCal.get(Calendar.MONTH),
                                         newCal.get(Calendar.DAY_OF_MONTH)
                                     )
-                                    fechaHora = calendar.timeInMillis
+                                    reminderTimestamp = calendar.timeInMillis
                                 }
                                 showDatePicker = false
                             }
@@ -182,7 +182,7 @@ fun ReminderDetailScreen(
                             onClick = {
                                 calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                                 calendar.set(Calendar.MINUTE, timePickerState.minute)
-                                fechaHora = calendar.timeInMillis
+                                reminderTimestamp = calendar.timeInMillis
                                 showTimePicker = false
                             }
                         ) { Text("OK") }
@@ -194,8 +194,8 @@ fun ReminderDetailScreen(
             }
 
             OutlinedTextField(
-                value = descripcion,
-                onValueChange = { descripcion = it },
+                value = reminderBody,
+                onValueChange = { reminderBody = it },
                 label = { Text("Descripción") },
                 modifier = Modifier
                     .fillMaxWidth()

@@ -64,7 +64,7 @@ fun PlanItApp(
     val reminderViewModel: ReminderViewModel = viewModel(factory = ReminderViewModelFactory(reminderRepository))
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val rutaActual = navBackStackEntry?.destination?.route ?: Ruts.NOTES_SCREEN
+    val currentRoute = navBackStackEntry?.destination?.route ?: Ruts.NOTES_SCREEN
 
     val navigationType: NavigationType = when (windowSize.widthSizeClass) {
         WindowWidthSizeClass.Compact -> NavigationType.BOTTOM_NAVIGATION
@@ -73,14 +73,14 @@ fun PlanItApp(
         else -> NavigationType.BOTTOM_NAVIGATION
     }
 
-    val isMainScreen = rutaActual == Ruts.NOTES_SCREEN || rutaActual == Ruts.REMINDERS_SCREEN
+    val isMainScreen = currentRoute == Ruts.NOTES_SCREEN || currentRoute == Ruts.REMINDERS_SCREEN
 
     if (navigationType == NavigationType.PERMANENT_NAVIGATION_DRAWER) {
         PermanentNavigationDrawer(
             drawerContent = {
                 PermanentDrawerSheet(Modifier.width(240.dp)) {
                     PlanItNavDrawerContent(
-                        selectedDestination = rutaActual,
+                        selectedDestination = currentRoute,
                         onTabPressed = { route -> navController.navigate(route) },
                         modifier = Modifier.padding(16.dp)
                     )
@@ -91,7 +91,7 @@ fun PlanItApp(
                 noteViewModel = noteViewModel,
                 reminderViewModel = reminderViewModel,
                 navController = navController,
-                rutaActual = rutaActual,
+                rutaActual = currentRoute,
                 isMainScreen = isMainScreen,
                 navigationType = navigationType
             )
@@ -100,7 +100,7 @@ fun PlanItApp(
         Row(modifier = Modifier.fillMaxSize()) {
             if (navigationType == NavigationType.NAVIGATION_RAIL) {
                 PlanItNavigationRail(
-                    selectedDestination = rutaActual,
+                    selectedDestination = currentRoute,
                     onTabPressed = { route -> navController.navigate(route) }
                 )
             }
@@ -108,7 +108,7 @@ fun PlanItApp(
                 noteViewModel = noteViewModel,
                 reminderViewModel = reminderViewModel,
                 navController = navController,
-                rutaActual = rutaActual,
+                rutaActual = currentRoute,
                 isMainScreen = isMainScreen,
                 navigationType = navigationType
             )
