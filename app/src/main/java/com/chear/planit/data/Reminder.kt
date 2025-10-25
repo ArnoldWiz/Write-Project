@@ -10,6 +10,6 @@ data class Reminder(
     val title: String,
     val description: String,
     val dateTime: Long,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val attachmentUri: String? = null
 )
-

@@ -12,6 +12,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chear.planit.data.Note
 import com.chear.planit.data.Reminder
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun ListElement(
@@ -21,9 +24,11 @@ fun ListElement(
     onDeleteClick: (() -> Unit)? = null
 ) {
     var checked by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     val title: String
     val body: String
+    var dateTime: Long? = null
 
     when (note) {
         is Note -> {
@@ -33,6 +38,7 @@ fun ListElement(
         is Reminder -> {
             title = note.title
             body = note.description
+            dateTime = note.dateTime
         }
         else -> {
             title = "Elemento desconocido"
@@ -70,6 +76,18 @@ fun ListElement(
                     text = title.ifBlank { "Sin título" },
                     fontWeight = FontWeight.Bold
                 )
+
+                if (isReminder && dateTime != null) {
+                    val calendar = Calendar.getInstance()
+                    calendar.timeInMillis = dateTime!!
+                    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+                    Text(
+                        text = dateFormatter.format(calendar.time),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 Text(
                     text = body.ifBlank { "Sin contenido" },
                     style = MaterialTheme.typography.bodySmall
@@ -77,10 +95,35 @@ fun ListElement(
             }
 
             onDeleteClick?.let {
-                IconButton(onClick = it) {
+                IconButton(onClick = { showDeleteDialog = true }) {
                     Icon(Icons.Default.Close, contentDescription = "Borrar")
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Confirmar eliminación") },
+            text = { Text("¿Estás seguro de que quieres eliminar este elemento?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick?.invoke()
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }

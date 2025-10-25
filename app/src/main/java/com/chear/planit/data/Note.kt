@@ -9,5 +9,6 @@ data class Note(
     val id: Int = 0,
     val title: String,
     val body: String,
-    val date: Long = System.currentTimeMillis()
+    val date: Long = System.currentTimeMillis(),
+    val attachmentUri: String? = null
 )
