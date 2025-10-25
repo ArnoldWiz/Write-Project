@@ -38,9 +38,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun VistaPreviaPlanIt() {
     AppTheme {
-        Text("Vista previa de la app PlanIt")
+        androidx.compose.material3.Text(
+            text = androidx.compose.ui.res.stringResource(id = R.string.welcome_message)
+        )
     }
 }
+
 
 //@Preview(showBackground = true)
 //@Composable

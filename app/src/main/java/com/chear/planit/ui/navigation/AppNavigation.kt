@@ -8,6 +8,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.ui.res.stringResource
+import com.chear.planit.R
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
@@ -72,7 +74,7 @@ fun PlanItApp(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "PlanIt",
+                            text = stringResource(id = R.string.app_name),
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Left,
                             fontWeight = FontWeight.Bold,

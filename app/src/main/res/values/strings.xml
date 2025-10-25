@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Plan It</string>
+    <string name="welcome_message">Welcome</string>
 </resources>
