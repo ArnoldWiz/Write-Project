@@ -1,3 +1,4 @@
+
 package com.chear.planit.ui.navigation
 
 import androidx.compose.foundation.layout.Column
@@ -33,12 +34,7 @@ import androidx.navigation.navArgument
 import com.chear.planit.R
 import com.chear.planit.data.NoteRepository
 import com.chear.planit.data.ReminderRepository
-import com.chear.planit.ui.screens.NoteDetailScreen
-import com.chear.planit.ui.screens.NoteViewModel
-import com.chear.planit.ui.screens.NotesScreen
-import com.chear.planit.ui.screens.ReminderDetailScreen
-import com.chear.planit.ui.screens.ReminderViewModel
-import com.chear.planit.ui.screens.RemindersScreen
+import com.chear.planit.ui.screens.*
 
 object Ruts {
     const val NOTES_SCREEN = "notes"
@@ -72,6 +68,10 @@ fun PlanItApp(
     val isMainScreen =
         rutaActual == Ruts.NOTES_SCREEN || rutaActual == Ruts.REMINDERS_SCREEN
 
+    // ViewModel Factories
+    val noteViewModelFactory = NoteViewModelFactory(noteRepository)
+    val reminderViewModelFactory = ReminderViewModelFactory(reminderRepository)
+
     if (navigationType == NavigationType.PERMANENT_NAVIGATION_DRAWER) {
         PermanentNavigationDrawer(
             drawerContent = {
@@ -88,7 +88,9 @@ fun PlanItApp(
                 navController = navController,
                 rutaActual = rutaActual,
                 isMainScreen = isMainScreen,
-                navigationType = navigationType
+                navigationType = navigationType,
+                noteViewModelFactory = noteViewModelFactory,
+                reminderViewModelFactory = reminderViewModelFactory
             )
         }
     } else {
@@ -103,7 +105,9 @@ fun PlanItApp(
                 navController = navController,
                 rutaActual = rutaActual,
                 isMainScreen = isMainScreen,
-                navigationType = navigationType
+                navigationType = navigationType,
+                noteViewModelFactory = noteViewModelFactory,
+                reminderViewModelFactory = reminderViewModelFactory
             )
         }
     }
@@ -115,7 +119,9 @@ fun PlanItAppContent(
     navController: NavHostController,
     rutaActual: String,
     isMainScreen: Boolean,
-    navigationType: NavigationType
+    navigationType: NavigationType,
+    noteViewModelFactory: NoteViewModelFactory,
+    reminderViewModelFactory: ReminderViewModelFactory
 ) {
     Scaffold(
         topBar = {
@@ -171,7 +177,7 @@ fun PlanItAppContent(
             modifier = Modifier.padding(paddingInterno)
         ) {
             composable(Ruts.NOTES_SCREEN) {
-                val noteViewModel: NoteViewModel = viewModel()
+                val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
                 NotesScreen(
                     noteViewModel = noteViewModel,
                     onNoteClick = { idNota ->
@@ -180,7 +186,7 @@ fun PlanItAppContent(
                 )
             }
             composable(Ruts.REMINDERS_SCREEN) {
-                val reminderViewModel: ReminderViewModel = viewModel()
+                val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
                 RemindersScreen(
                     reminderViewModel = reminderViewModel,
                     onReminderClick = { idRecordatorio ->
@@ -189,7 +195,7 @@ fun PlanItAppContent(
                 )
             }
             composable(Ruts.DETAIL_NOTE_SCREEN) {
-                val noteViewModel: NoteViewModel = viewModel()
+                val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
                 NoteDetailScreen(
                     noteId = null,
                     onNavigateBack = { navController.popBackStack() },
@@ -204,7 +210,7 @@ fun PlanItAppContent(
                 })
             ) { backStackEntry ->
                 val idNota = backStackEntry.arguments?.getString("idNota")
-                val noteViewModel: NoteViewModel = viewModel()
+                val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
                 NoteDetailScreen(
                     noteId = idNota,
                     onNavigateBack = { navController.popBackStack() },
@@ -212,7 +218,7 @@ fun PlanItAppContent(
                 )
             }
             composable(Ruts.DETAIL_REMINDER_SCREEN) {
-                val reminderViewModel: ReminderViewModel = viewModel()
+                val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
                 ReminderDetailScreen(
                     reminderId = null,
                     onNavigateBack = { navController.popBackStack() },
@@ -227,7 +233,7 @@ fun PlanItAppContent(
                 })
             ) { backStackEntry ->
                 val idRecordatorio = backStackEntry.arguments?.getString("idRecordatorio")
-                val reminderViewModel: ReminderViewModel = viewModel()
+                val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
                 ReminderDetailScreen(
                     reminderId = idRecordatorio,
                     onNavigateBack = { navController.popBackStack() },
