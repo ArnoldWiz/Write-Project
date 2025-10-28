@@ -1,4 +1,4 @@
-package com.chear.planit.ui
+package com.chear.planit.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
-    val notes: StateFlow<List<Note>> = repository.allNotes
+    val notes: StateFlow<List<Note>> = repository.getAll()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun addNote(note: Note) = viewModelScope.launch {

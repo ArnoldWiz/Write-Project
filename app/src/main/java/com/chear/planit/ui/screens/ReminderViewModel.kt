@@ -1,4 +1,4 @@
-package com.chear.planit.ui
+package com.chear.planit.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 class ReminderViewModel(private val repository: ReminderRepository) : ViewModel() {
 
-    val reminders: StateFlow<List<Reminder>> = repository.allReminders
+    val reminders: StateFlow<List<Reminder>> = repository.getAll()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun addReminder(reminder: Reminder) = viewModelScope.launch {

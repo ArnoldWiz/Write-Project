@@ -2,9 +2,9 @@ package com.chear.planit.data
 
 import kotlinx.coroutines.flow.Flow
 
-class NoteRepository(private val noteDao: NoteDao) {
-    val allNotes: Flow<List<Note>> = noteDao.getNotes()
-    suspend fun insert(note: Note) = noteDao.insert(note)
-    suspend fun update(note: Note) = noteDao.update(note)
-    suspend fun delete(note: Note) = noteDao.delete(note)
+class NoteRepository(private val noteDao: NoteDao) : Repository<Note> {
+    override fun getAll(): Flow<List<Note>> = noteDao.getNotes()
+    override suspend fun insert(item: Note) = noteDao.insert(item)
+    override suspend fun update(item: Note) = noteDao.update(item)
+    override suspend fun delete(item: Note) = noteDao.delete(item)
 }

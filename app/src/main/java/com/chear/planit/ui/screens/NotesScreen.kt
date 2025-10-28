@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chear.planit.ui.components.ListElement
-import com.chear.planit.ui.NoteViewModel
 
 @Composable
 fun NotesScreen(

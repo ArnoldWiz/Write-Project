@@ -2,9 +2,9 @@ package com.chear.planit.data
 
 import kotlinx.coroutines.flow.Flow
 
-class ReminderRepository(private val reminderDao: ReminderDao) {
-    val allReminders: Flow<List<Reminder>> = reminderDao.getAllReminders()
-    suspend fun insert(reminder: Reminder) = reminderDao.insert(reminder)
-    suspend fun update(reminder: Reminder) = reminderDao.update(reminder)
-    suspend fun delete(reminder: Reminder) = reminderDao.delete(reminder)
+class ReminderRepository(private val reminderDao: ReminderDao) : Repository<Reminder> {
+    override fun getAll(): Flow<List<Reminder>> = reminderDao.getAllReminders()
+    override suspend fun insert(item: Reminder) = reminderDao.insert(item)
+    override suspend fun update(item: Reminder) = reminderDao.update(item)
+    override suspend fun delete(item: Reminder) = reminderDao.delete(item)
 }

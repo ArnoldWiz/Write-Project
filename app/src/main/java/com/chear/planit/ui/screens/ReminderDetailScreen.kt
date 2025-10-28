@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Reminder
-import com.chear.planit.ui.ReminderViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale

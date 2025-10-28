@@ -1,4 +1,4 @@
-package com.chear.planit.ui
+package com.chear.planit.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
