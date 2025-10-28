@@ -10,11 +10,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chear.planit.R
 import com.chear.planit.data.Note
 import com.chear.planit.data.Reminder
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+
 
 @Composable
 fun ListElement(
@@ -73,8 +76,8 @@ fun ListElement(
                     .padding(start = 8.dp)
             ) {
                 Text(
-                    text = title.ifBlank { "Sin título" },
-                    fontWeight = FontWeight.Bold
+                    text = if (title.isBlank()) stringResource(R.string.no_title) else title,
+                            fontWeight = FontWeight.Bold
                 )
 
                 if (isReminder && dateTime != null) {
@@ -89,14 +92,14 @@ fun ListElement(
                 }
 
                 Text(
-                    text = body.ifBlank { "Sin contenido" },
+                    text = if (body.isBlank()) stringResource(R.string.no_content) else body,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
 
             onDeleteClick?.let {
                 IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(Icons.Default.Close, contentDescription = "Borrar")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.delete))
                 }
             }
         }
@@ -105,8 +108,8 @@ fun ListElement(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Confirmar eliminación") },
-            text = { Text("¿Estás seguro de que quieres eliminar este elemento?") },
+            title = { Text(stringResource(R.string.confirm_delete)) },
+            text = { Text(stringResource(R.string.second_confirm_delete)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -114,14 +117,14 @@ fun ListElement(
                         showDeleteDialog = false
                     }
                 ) {
-                    Text("Aceptar")
+                    Text(stringResource(R.string.accept))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteDialog = false }
                 ) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

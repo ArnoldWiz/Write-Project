@@ -9,7 +9,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,38 +24,36 @@ fun NoteDetailScreen(
     noteViewModel: NoteViewModel
 ) {
     val isEditing = noteId != null
-
     val notes by noteViewModel.notes.collectAsState()
 
     val noteToEdit: Note? = noteId?.toIntOrNull()?.let { id ->
         notes.find { it.id == id }
     }
 
-    var noteTitle by rememberSaveable { mutableStateOf("") }
-    var noteBody by rememberSaveable { mutableStateOf("") }
-    var attachmentUri by rememberSaveable { mutableStateOf<String?>(null) }
+    val noteTitle by noteViewModel.noteTitle
+    val noteBody by noteViewModel.noteBody
+    val attachmentUri by noteViewModel.attachmentUri
+
+    LaunchedEffect(key1 = noteToEdit) {
+        noteViewModel.loadNote(noteToEdit)
+    }
 
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
-            attachmentUri = uri?.toString()
+            noteViewModel.onAttachmentChange(uri?.toString())
         }
     )
-
-    LaunchedEffect(key1 = noteToEdit) {
-        noteToEdit?.let {
-            noteTitle = it.title
-            noteBody = it.body
-            attachmentUri = it.attachmentUri
-        }
-    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editar Nota" else "Nueva Nota") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = {
+                        noteViewModel.clearNoteFields()
+                        onNavigateBack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
@@ -65,21 +62,12 @@ fun NoteDetailScreen(
                         onClick = {
                             if (noteTitle.isNotBlank() || noteBody.isNotBlank()) {
                                 if (isEditing && noteToEdit != null) {
-                                    val updated = noteToEdit.copy(
-                                        title = noteTitle,
-                                        body = noteBody,
-                                        attachmentUri = attachmentUri
-                                    )
-                                    noteViewModel.update(updated)
+                                    noteViewModel.update(noteToEdit)
                                 } else {
-                                    val nueva = Note(
-                                        title = noteTitle,
-                                        body = noteBody,
-                                        attachmentUri = attachmentUri
-                                    )
-                                    noteViewModel.addNote(nueva)
+                                    noteViewModel.addNote()
                                 }
                             }
+                            noteViewModel.clearNoteFields()
                             onNavigateBack()
                         }
                     ) {
@@ -98,13 +86,14 @@ fun NoteDetailScreen(
         ) {
             OutlinedTextField(
                 value = noteTitle,
-                onValueChange = { noteTitle = it },
+                onValueChange = { noteViewModel.onTitleChange(it) },
                 label = { Text("Título") },
                 modifier = Modifier.fillMaxWidth()
             )
+
             OutlinedTextField(
                 value = noteBody,
-                onValueChange = { noteBody = it },
+                onValueChange = { noteViewModel.onBodyChange(it) },
                 label = { Text("Cuerpo") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -120,7 +109,7 @@ fun NoteDetailScreen(
             attachmentUri?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Adjunto: ${it.toUri().lastPathSegment}", modifier = Modifier.weight(1f))
-                    IconButton(onClick = { attachmentUri = null }) {
+                    IconButton(onClick = { noteViewModel.onAttachmentChange(null) }) {
                         Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
                     }
                 }

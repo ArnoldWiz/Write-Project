@@ -9,11 +9,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import com.chear.planit.data.Note
 import com.chear.planit.data.Reminder
 import com.chear.planit.ui.ReminderViewModel
 import java.text.SimpleDateFormat
@@ -27,6 +29,7 @@ fun ReminderDetailScreen(
     onNavigateBack: () -> Unit,
     reminderViewModel: ReminderViewModel
 ) {
+
     val isEditing = reminderId != null
 
     val reminders by reminderViewModel.reminders.collectAsState()
@@ -35,10 +38,10 @@ fun ReminderDetailScreen(
         reminders.find { it.id == id }
     }
 
-    var reminderTitle by rememberSaveable { mutableStateOf("") }
-    var reminderBody by rememberSaveable { mutableStateOf("") }
-    var reminderTimestamp by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
-    var attachmentUri by rememberSaveable { mutableStateOf<String?>(null) }
+    var reminderTitle by reminderViewModel.reminderTitle
+    var reminderBody by reminderViewModel.reminderBody
+    var reminderTimestamp by reminderViewModel.reminderTimestamp
+    var attachmentUri by reminderViewModel.attachmentUri
 
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -48,12 +51,7 @@ fun ReminderDetailScreen(
     )
 
     LaunchedEffect(key1 = reminderToEdit) {
-        reminderToEdit?.let {
-            reminderTitle = it.title
-            reminderBody = it.description
-            reminderTimestamp = it.dateTime
-            attachmentUri = it.attachmentUri
-        }
+        reminderViewModel.loadReminder(reminderToEdit)
     }
 
     Scaffold(
@@ -70,21 +68,9 @@ fun ReminderDetailScreen(
                         onClick = {
                             if (reminderTitle.isNotBlank() || reminderBody.isNotBlank()) {
                                 if (isEditing && reminderToEdit != null) {
-                                    val updated = reminderToEdit.copy(
-                                        title = reminderTitle,
-                                        description = reminderBody,
-                                        dateTime = reminderTimestamp,
-                                        attachmentUri = attachmentUri
-                                    )
-                                    reminderViewModel.updateReminder(updated)
+                                    reminderViewModel.updateReminder(reminderToEdit)
                                 } else {
-                                    val nuevo = Reminder(
-                                        title = reminderTitle,
-                                        description = reminderBody,
-                                        dateTime = reminderTimestamp,
-                                        attachmentUri = attachmentUri
-                                    )
-                                    reminderViewModel.addReminder(nuevo)
+                                    reminderViewModel.addReminder()
                                 }
                             }
                             onNavigateBack()
@@ -195,7 +181,7 @@ fun ReminderDetailScreen(
 
             OutlinedTextField(
                 value = reminderBody,
-                onValueChange = { reminderBody = it },
+                onValueChange = { reminderViewModel.onBodyChange(it) },
                 label = { Text("Descripción") },
                 modifier = Modifier
                     .fillMaxWidth()

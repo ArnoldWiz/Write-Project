@@ -161,7 +161,7 @@ fun PlanItAppContent(
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 ) {
-                    Icon(Icons.Filled.Add, "Añadir")
+                    Icon(Icons.Filled.Add, stringResource(R.string.add))
                 }
             }
         },
@@ -256,14 +256,14 @@ fun PlanItBottomNavigationBar(
         NavigationBarItem(
             selected = selectedDestination == Ruts.NOTES_SCREEN,
             onClick = { onTabPressed(Ruts.NOTES_SCREEN) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = "Notas") },
-            label = { Text("Notas") }
+            icon = { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.notes_label)) },
+            label = { Text(stringResource(R.string.notes_label)) }
         )
         NavigationBarItem(
             selected = selectedDestination == Ruts.REMINDERS_SCREEN,
             onClick = { onTabPressed(Ruts.REMINDERS_SCREEN) },
-            icon = { Icon(Icons.Default.DateRange, contentDescription = "Recordatorios") },
-            label = { Text("Recordatorios") }
+            icon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.reminders_label)) },
+            label = { Text(stringResource(R.string.reminders_label)) }
         )
     }
 }
@@ -278,14 +278,14 @@ fun PlanItNavigationRail(
         NavigationRailItem(
             selected = selectedDestination == Ruts.NOTES_SCREEN,
             onClick = { onTabPressed(Ruts.NOTES_SCREEN) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = "Notas") },
-            label = { Text("Notas") }
+            icon = { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.notes_label)) },
+            label = { Text(stringResource(R.string.notes_label)) }
         )
         NavigationRailItem(
             selected = selectedDestination == Ruts.REMINDERS_SCREEN,
             onClick = { onTabPressed(Ruts.REMINDERS_SCREEN) },
-            icon = { Icon(Icons.Default.DateRange, contentDescription = "Recordatorios") },
-            label = { Text("Recordatorios") }
+            icon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.reminders_label)) },
+            label = { Text(stringResource(R.string.reminders_label)) }
         )
     }
 }
@@ -299,14 +299,14 @@ fun PlanItNavDrawerContent(
     Column(modifier) {
         NavigationDrawerItem(
             selected = selectedDestination == Ruts.NOTES_SCREEN,
-            label = { Text("Notas") },
-            icon = { Icon(Icons.Default.Edit, contentDescription = "Notas") },
+            label = { Text(stringResource(R.string.notes_label)) },
+            icon = { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.notes_label)) },
             onClick = { onTabPressed(Ruts.NOTES_SCREEN) }
         )
         NavigationDrawerItem(
             selected = selectedDestination == Ruts.REMINDERS_SCREEN,
-            label = { Text("Recordatorios") },
-            icon = { Icon(Icons.Default.DateRange, contentDescription = "Recordatorios") },
+            label = { Text(stringResource(R.string.reminders_label)) },
+            icon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.reminders_label)) },
             onClick = { onTabPressed(Ruts.REMINDERS_SCREEN) }
         )
     }

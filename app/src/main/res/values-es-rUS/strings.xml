@@ -2,4 +2,14 @@
 <resources>
     <string name="app_name">Planea</string>
     <string name="welcome_message">Bienvenido</string>
+    <string name="add">Añadir</string>
+    <string name="notes_label">Notas</string>
+    <string name="reminders_label">Recordatorios</string>
+    <string name="no_title">Sin título</string>
+    <string name="no_content">Sin contenido</string>
+    <string name="delete">Borrar</string>
+    <string name="confirm_delete">Confirmar eliminación</string>
+    <string name="accept">Aceptar</string>
+    <string name="second_confirm_delete">¿Estás seguro de que quieres eliminar este elemento?</string>
+    <string name="cancel">Cancelar</string>
 </resources>

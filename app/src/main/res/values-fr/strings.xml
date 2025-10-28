@@ -2,4 +2,14 @@
 <resources>
     <string name="welcome_message">Bienvenue</string>
     <string name="app_name">Planifie-le</string>
+    <string name="add">Ajouter</string>
+    <string name="notes_label">Notes</string>
+    <string name="reminders_label">Rappels</string>
+    <string name="no_title">Sans titre</string>
+    <string name="no_content">Sans contenu</string>
+    <string name="delete">Supprimer</string>
+    <string name="confirm_delete">Confirmer la suppression</string>
+    <string name="accept">Accepter</string>
+    <string name="second_confirm_delete">Êtes-vous sûr de vouloir supprimer cet élément ?</string>
+    <string name="cancel">Annuler</string>
 </resources>
