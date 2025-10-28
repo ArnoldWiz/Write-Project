@@ -42,6 +42,7 @@ import com.chear.planit.ui.screens.NotesScreen
 import com.chear.planit.ui.screens.ReminderDetailScreen
 import com.chear.planit.ui.screens.RemindersScreen
 
+// Rutas de navegación
 object Ruts {
     const val NOTES_SCREEN = "notes"
     const val REMINDERS_SCREEN = "reminders"
@@ -116,7 +117,6 @@ fun PlanItApp(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanItAppContent(
@@ -188,7 +188,7 @@ fun PlanItAppContent(
                     }
                 )
             }
-             composable(Ruts.REMINDERS_SCREEN) {
+            composable(Ruts.REMINDERS_SCREEN) {
                 RemindersScreen(
                     reminderViewModel = reminderViewModel,
                     onReminderClick = { idDelRecordatorio ->
@@ -196,7 +196,6 @@ fun PlanItAppContent(
                     }
                 )
             }
-
             composable(Ruts.DETAIL_NOTE_SCREEN) {
                 NoteDetailScreen(
                     noteId = null,
@@ -204,7 +203,6 @@ fun PlanItAppContent(
                     noteViewModel = noteViewModel
                 )
             }
-
             composable(
                 route = "${Ruts.DETAIL_NOTE_SCREEN}/{idNota}",
                 arguments = listOf(navArgument("idNota") {
@@ -219,7 +217,6 @@ fun PlanItAppContent(
                     noteViewModel = noteViewModel
                 )
             }
-
             composable(Ruts.DETAIL_REMINDER_SCREEN) {
                 ReminderDetailScreen(
                     reminderId = null,
@@ -227,7 +224,6 @@ fun PlanItAppContent(
                     reminderViewModel = reminderViewModel
                 )
             }
-
             composable(
                 route = "${Ruts.DETAIL_REMINDER_SCREEN}/{idRecordatorio}",
                 arguments = listOf(navArgument("idRecordatorio") {
