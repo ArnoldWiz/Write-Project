@@ -1,4 +1,4 @@
-package com.chear.planit.ui
+package com.chear.planit.ui.screens
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
-    val notes: StateFlow<List<Note>> = repository.allNotes
+    val notes: StateFlow<List<Note>> = repository.getAll()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     var noteTitle = mutableStateOf("")

@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Note
-import com.chear.planit.ui.NoteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
