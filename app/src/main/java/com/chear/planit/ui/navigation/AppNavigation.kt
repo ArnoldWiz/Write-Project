@@ -1,3 +1,4 @@
+
 package com.chear.planit.ui.navigation
 
 import androidx.compose.foundation.layout.Column
@@ -33,16 +34,15 @@ import androidx.navigation.navArgument
 import com.chear.planit.R
 import com.chear.planit.data.NoteRepository
 import com.chear.planit.data.ReminderRepository
+import com.chear.planit.ui.NoteViewModel
+import com.chear.planit.ui.NoteViewModelFactory
+import com.chear.planit.ui.ReminderViewModel
+import com.chear.planit.ui.ReminderViewModelFactory
 import com.chear.planit.ui.screens.NoteDetailScreen
-import com.chear.planit.ui.screens.NoteViewModel
-import com.chear.planit.ui.screens.NoteViewModelFactory
 import com.chear.planit.ui.screens.NotesScreen
 import com.chear.planit.ui.screens.ReminderDetailScreen
-import com.chear.planit.ui.screens.ReminderViewModel
-import com.chear.planit.ui.screens.ReminderViewModelFactory
 import com.chear.planit.ui.screens.RemindersScreen
 
-// Rutas de navegación
 object Ruts {
     const val NOTES_SCREEN = "notes"
     const val REMINDERS_SCREEN = "reminders"
@@ -65,7 +65,7 @@ fun PlanItApp(
     val reminderViewModel: ReminderViewModel = viewModel(factory = ReminderViewModelFactory(reminderRepository))
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val rutaActual = navBackStackEntry?.destination?.route ?: Ruts.NOTES_SCREEN
+    val currentRoute = navBackStackEntry?.destination?.route ?: Ruts.NOTES_SCREEN
 
     val navigationType: NavigationType = when (windowSize.widthSizeClass) {
         WindowWidthSizeClass.Compact -> NavigationType.BOTTOM_NAVIGATION
@@ -74,14 +74,14 @@ fun PlanItApp(
         else -> NavigationType.BOTTOM_NAVIGATION
     }
 
-    val isMainScreen = rutaActual == Ruts.NOTES_SCREEN || rutaActual == Ruts.REMINDERS_SCREEN
+    val isMainScreen = currentRoute == Ruts.NOTES_SCREEN || currentRoute == Ruts.REMINDERS_SCREEN
 
     if (navigationType == NavigationType.PERMANENT_NAVIGATION_DRAWER) {
         PermanentNavigationDrawer(
             drawerContent = {
                 PermanentDrawerSheet(Modifier.width(240.dp)) {
                     PlanItNavDrawerContent(
-                        selectedDestination = rutaActual,
+                        selectedDestination = currentRoute,
                         onTabPressed = { route -> navController.navigate(route) },
                         modifier = Modifier.padding(16.dp)
                     )
@@ -92,7 +92,7 @@ fun PlanItApp(
                 noteViewModel = noteViewModel,
                 reminderViewModel = reminderViewModel,
                 navController = navController,
-                rutaActual = rutaActual,
+                rutaActual = currentRoute,
                 isMainScreen = isMainScreen,
                 navigationType = navigationType
             )
@@ -101,7 +101,7 @@ fun PlanItApp(
         Row(modifier = Modifier.fillMaxSize()) {
             if (navigationType == NavigationType.NAVIGATION_RAIL) {
                 PlanItNavigationRail(
-                    selectedDestination = rutaActual,
+                    selectedDestination = currentRoute,
                     onTabPressed = { route -> navController.navigate(route) }
                 )
             }
@@ -109,7 +109,7 @@ fun PlanItApp(
                 noteViewModel = noteViewModel,
                 reminderViewModel = reminderViewModel,
                 navController = navController,
-                rutaActual = rutaActual,
+                rutaActual = currentRoute,
                 isMainScreen = isMainScreen,
                 navigationType = navigationType
             )
@@ -196,6 +196,7 @@ fun PlanItAppContent(
                     }
                 )
             }
+
             composable(Ruts.DETAIL_NOTE_SCREEN) {
                 NoteDetailScreen(
                     noteId = null,
@@ -203,6 +204,7 @@ fun PlanItAppContent(
                     noteViewModel = noteViewModel
                 )
             }
+
             composable(
                 route = "${Ruts.DETAIL_NOTE_SCREEN}/{idNota}",
                 arguments = listOf(navArgument("idNota") {
@@ -217,6 +219,7 @@ fun PlanItAppContent(
                     noteViewModel = noteViewModel
                 )
             }
+
             composable(Ruts.DETAIL_REMINDER_SCREEN) {
                 ReminderDetailScreen(
                     reminderId = null,
@@ -224,6 +227,7 @@ fun PlanItAppContent(
                     reminderViewModel = reminderViewModel
                 )
             }
+
             composable(
                 route = "${Ruts.DETAIL_REMINDER_SCREEN}/{idRecordatorio}",
                 arguments = listOf(navArgument("idRecordatorio") {
