@@ -14,6 +14,7 @@ import com.chear.planit.data.ReminderRepository
 import com.chear.planit.ui.navigation.PlanItApp
 import com.chear.planit.ui.theme.AppTheme
 
+
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,7 +28,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 val windowSize = calculateWindowSizeClass(this)
-                PlanItApp(noteRepository, reminderRepository, windowSize)
+                PlanItApp( noteRepository = noteRepository,
+                    reminderRepository = reminderRepository,
+                    windowSize = windowSize)
             }
         }
     }

@@ -14,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Note
+import com.chear.planit.ui.screens.NoteViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,9 +31,9 @@ fun NoteDetailScreen(
     val noteToEdit: Note? = noteId?.toIntOrNull()?.let { id ->
         notes.find { it.id == id }
     }
-
     val noteTitle by noteViewModel.noteTitle
     val noteBody by noteViewModel.noteBody
+    val noteDate by noteViewModel.noteDate
     val attachmentUri by noteViewModel.attachmentUri
 
     LaunchedEffect(key1 = noteToEdit) {
@@ -43,6 +46,10 @@ fun NoteDetailScreen(
             noteViewModel.onAttachmentChange(uri?.toString())
         }
     )
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+    val formattedDate = remember(noteDate) {
+        noteDate?.let { dateFormatter.format(Date(it)) } ?: "Sin fecha"
+    }
 
     Scaffold(
         topBar = {
@@ -93,13 +100,19 @@ fun NoteDetailScreen(
             OutlinedTextField(
                 value = noteBody,
                 onValueChange = { noteViewModel.onBodyChange(it) },
-                label = { Text("Cuerpo") },
+                label = { Text("Contenido") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Text("Última modificación: $formattedDate")
+
+            Button(onClick = {
+                noteViewModel.onDateChange(System.currentTimeMillis())
+            }) {
+                Text("Actualizar fecha actual")
+            }
 
             Button(onClick = { pickAttachmentLauncher.launch(arrayOf("*/*")) }) {
                 Text("Adjuntar archivo")

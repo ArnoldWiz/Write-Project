@@ -1,4 +1,3 @@
-
 package com.chear.planit.ui.navigation
 
 import androidx.compose.foundation.layout.Column
@@ -34,13 +33,11 @@ import androidx.navigation.navArgument
 import com.chear.planit.R
 import com.chear.planit.data.NoteRepository
 import com.chear.planit.data.ReminderRepository
-import com.chear.planit.ui.NoteViewModel
-import com.chear.planit.ui.NoteViewModelFactory
-import com.chear.planit.ui.ReminderViewModel
-import com.chear.planit.ui.ReminderViewModelFactory
 import com.chear.planit.ui.screens.NoteDetailScreen
+import com.chear.planit.ui.screens.NoteViewModel
 import com.chear.planit.ui.screens.NotesScreen
 import com.chear.planit.ui.screens.ReminderDetailScreen
+import com.chear.planit.ui.screens.ReminderViewModel
 import com.chear.planit.ui.screens.RemindersScreen
 
 object Ruts {
@@ -60,12 +57,10 @@ fun PlanItApp(
     noteRepository: NoteRepository,
     reminderRepository: ReminderRepository,
     windowSize: WindowSizeClass
-) {
-    val noteViewModel: NoteViewModel = viewModel(factory = NoteViewModelFactory(noteRepository))
-    val reminderViewModel: ReminderViewModel = viewModel(factory = ReminderViewModelFactory(reminderRepository))
+){
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: Ruts.NOTES_SCREEN
+    val rutaActual = navBackStackEntry?.destination?.route ?: Ruts.NOTES_SCREEN
 
     val navigationType: NavigationType = when (windowSize.widthSizeClass) {
         WindowWidthSizeClass.Compact -> NavigationType.BOTTOM_NAVIGATION
@@ -74,14 +69,15 @@ fun PlanItApp(
         else -> NavigationType.BOTTOM_NAVIGATION
     }
 
-    val isMainScreen = currentRoute == Ruts.NOTES_SCREEN || currentRoute == Ruts.REMINDERS_SCREEN
+    val isMainScreen =
+        rutaActual == Ruts.NOTES_SCREEN || rutaActual == Ruts.REMINDERS_SCREEN
 
     if (navigationType == NavigationType.PERMANENT_NAVIGATION_DRAWER) {
         PermanentNavigationDrawer(
             drawerContent = {
                 PermanentDrawerSheet(Modifier.width(240.dp)) {
                     PlanItNavDrawerContent(
-                        selectedDestination = currentRoute,
+                        selectedDestination = rutaActual,
                         onTabPressed = { route -> navController.navigate(route) },
                         modifier = Modifier.padding(16.dp)
                     )
@@ -89,10 +85,8 @@ fun PlanItApp(
             }
         ) {
             PlanItAppContent(
-                noteViewModel = noteViewModel,
-                reminderViewModel = reminderViewModel,
                 navController = navController,
-                rutaActual = currentRoute,
+                rutaActual = rutaActual,
                 isMainScreen = isMainScreen,
                 navigationType = navigationType
             )
@@ -101,15 +95,13 @@ fun PlanItApp(
         Row(modifier = Modifier.fillMaxSize()) {
             if (navigationType == NavigationType.NAVIGATION_RAIL) {
                 PlanItNavigationRail(
-                    selectedDestination = currentRoute,
+                    selectedDestination = rutaActual,
                     onTabPressed = { route -> navController.navigate(route) }
                 )
             }
             PlanItAppContent(
-                noteViewModel = noteViewModel,
-                reminderViewModel = reminderViewModel,
                 navController = navController,
-                rutaActual = currentRoute,
+                rutaActual = rutaActual,
                 isMainScreen = isMainScreen,
                 navigationType = navigationType
             )
@@ -120,8 +112,6 @@ fun PlanItApp(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanItAppContent(
-    noteViewModel: NoteViewModel,
-    reminderViewModel: ReminderViewModel,
     navController: NavHostController,
     rutaActual: String,
     isMainScreen: Boolean,
@@ -161,7 +151,7 @@ fun PlanItAppContent(
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 ) {
-                    Icon(Icons.Filled.Add, stringResource(R.string.add))
+                    Icon(Icons.Filled.Add, contentDescription = "Añadir")
                 }
             }
         },
@@ -181,30 +171,31 @@ fun PlanItAppContent(
             modifier = Modifier.padding(paddingInterno)
         ) {
             composable(Ruts.NOTES_SCREEN) {
+                val noteViewModel: NoteViewModel = viewModel()
                 NotesScreen(
                     noteViewModel = noteViewModel,
-                    onNoteClick = { idDeLaNota ->
-                        navController.navigate("${Ruts.DETAIL_NOTE_SCREEN}/$idDeLaNota")
+                    onNoteClick = { idNota ->
+                        navController.navigate("${Ruts.DETAIL_NOTE_SCREEN}/$idNota")
                     }
                 )
             }
             composable(Ruts.REMINDERS_SCREEN) {
+                val reminderViewModel: ReminderViewModel = viewModel()
                 RemindersScreen(
                     reminderViewModel = reminderViewModel,
-                    onReminderClick = { idDelRecordatorio ->
-                        navController.navigate("${Ruts.DETAIL_REMINDER_SCREEN}/$idDelRecordatorio")
+                    onReminderClick = { idRecordatorio ->
+                        navController.navigate("${Ruts.DETAIL_REMINDER_SCREEN}/$idRecordatorio")
                     }
                 )
             }
-
             composable(Ruts.DETAIL_NOTE_SCREEN) {
+                val noteViewModel: NoteViewModel = viewModel()
                 NoteDetailScreen(
                     noteId = null,
                     onNavigateBack = { navController.popBackStack() },
                     noteViewModel = noteViewModel
                 )
             }
-
             composable(
                 route = "${Ruts.DETAIL_NOTE_SCREEN}/{idNota}",
                 arguments = listOf(navArgument("idNota") {
@@ -213,21 +204,21 @@ fun PlanItAppContent(
                 })
             ) { backStackEntry ->
                 val idNota = backStackEntry.arguments?.getString("idNota")
+                val noteViewModel: NoteViewModel = viewModel()
                 NoteDetailScreen(
                     noteId = idNota,
                     onNavigateBack = { navController.popBackStack() },
                     noteViewModel = noteViewModel
                 )
             }
-
             composable(Ruts.DETAIL_REMINDER_SCREEN) {
+                val reminderViewModel: ReminderViewModel = viewModel()
                 ReminderDetailScreen(
                     reminderId = null,
                     onNavigateBack = { navController.popBackStack() },
                     reminderViewModel = reminderViewModel
                 )
             }
-
             composable(
                 route = "${Ruts.DETAIL_REMINDER_SCREEN}/{idRecordatorio}",
                 arguments = listOf(navArgument("idRecordatorio") {
@@ -236,6 +227,7 @@ fun PlanItAppContent(
                 })
             ) { backStackEntry ->
                 val idRecordatorio = backStackEntry.arguments?.getString("idRecordatorio")
+                val reminderViewModel: ReminderViewModel = viewModel()
                 ReminderDetailScreen(
                     reminderId = idRecordatorio,
                     onNavigateBack = { navController.popBackStack() },
@@ -256,14 +248,14 @@ fun PlanItBottomNavigationBar(
         NavigationBarItem(
             selected = selectedDestination == Ruts.NOTES_SCREEN,
             onClick = { onTabPressed(Ruts.NOTES_SCREEN) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.notes_label)) },
-            label = { Text(stringResource(R.string.notes_label)) }
+            icon = { Icon(Icons.Default.Edit, contentDescription = "Notas") },
+            label = { Text("Notas") }
         )
         NavigationBarItem(
             selected = selectedDestination == Ruts.REMINDERS_SCREEN,
             onClick = { onTabPressed(Ruts.REMINDERS_SCREEN) },
-            icon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.reminders_label)) },
-            label = { Text(stringResource(R.string.reminders_label)) }
+            icon = { Icon(Icons.Default.DateRange, contentDescription = "Recordatorios") },
+            label = { Text("Recordatorios") }
         )
     }
 }
@@ -278,14 +270,14 @@ fun PlanItNavigationRail(
         NavigationRailItem(
             selected = selectedDestination == Ruts.NOTES_SCREEN,
             onClick = { onTabPressed(Ruts.NOTES_SCREEN) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.notes_label)) },
-            label = { Text(stringResource(R.string.notes_label)) }
+            icon = { Icon(Icons.Default.Edit, contentDescription = "Notas") },
+            label = { Text("Notas") }
         )
         NavigationRailItem(
             selected = selectedDestination == Ruts.REMINDERS_SCREEN,
             onClick = { onTabPressed(Ruts.REMINDERS_SCREEN) },
-            icon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.reminders_label)) },
-            label = { Text(stringResource(R.string.reminders_label)) }
+            icon = { Icon(Icons.Default.DateRange, contentDescription = "Recordatorios") },
+            label = { Text("Recordatorios") }
         )
     }
 }
@@ -299,14 +291,14 @@ fun PlanItNavDrawerContent(
     Column(modifier) {
         NavigationDrawerItem(
             selected = selectedDestination == Ruts.NOTES_SCREEN,
-            label = { Text(stringResource(R.string.notes_label)) },
-            icon = { Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.notes_label)) },
+            label = { Text("Notas") },
+            icon = { Icon(Icons.Default.Edit, contentDescription = "Notas") },
             onClick = { onTabPressed(Ruts.NOTES_SCREEN) }
         )
         NavigationDrawerItem(
             selected = selectedDestination == Ruts.REMINDERS_SCREEN,
-            label = { Text(stringResource(R.string.reminders_label)) },
-            icon = { Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.reminders_label)) },
+            label = { Text("Recordatorios") },
+            icon = { Icon(Icons.Default.DateRange, contentDescription = "Recordatorios") },
             onClick = { onTabPressed(Ruts.REMINDERS_SCREEN) }
         )
     }

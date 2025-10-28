@@ -19,6 +19,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         private set
     var noteBody = mutableStateOf("")
         private set
+
+    var noteDate = mutableStateOf<Long?>(null)
+        private set
+
     var attachmentUri = mutableStateOf<String?>(null)
         private set
 
@@ -30,6 +34,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         noteBody.value = newBody
     }
 
+    fun onDateChange(newDate: Long) {
+        noteDate.value = newDate
+    }
+
     fun onAttachmentChange(newUri: String?) {
         attachmentUri.value = newUri
     }
@@ -39,6 +47,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
             noteTitle.value = note.title
             noteBody.value = note.body
             attachmentUri.value = note.attachmentUri
+            noteDate.value = note.date
         } else {
             clearNoteFields()
         }
@@ -48,7 +57,9 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         noteTitle.value = ""
         noteBody.value = ""
         attachmentUri.value = null
+        noteDate.value = null
     }
+
 
     fun addNote() = viewModelScope.launch {
         if (noteTitle.value.isNotBlank() || noteBody.value.isNotBlank()) {
@@ -56,7 +67,8 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                 Note(
                     title = noteTitle.value,
                     body = noteBody.value,
-                    attachmentUri = attachmentUri.value
+                    attachmentUri = attachmentUri.value,
+                    date = noteDate.value ?: System.currentTimeMillis()
                 )
             )
             clearNoteFields()
@@ -67,11 +79,13 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         val updated = existingNote.copy(
             title = noteTitle.value,
             body = noteBody.value,
-            attachmentUri = attachmentUri.value
+            attachmentUri = attachmentUri.value,
+            date = noteDate.value ?: System.currentTimeMillis()
         )
         repository.update(updated)
         clearNoteFields()
     }
+
 
     fun delete(note: Note) = viewModelScope.launch {
         repository.delete(note)

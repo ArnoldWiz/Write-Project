@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chear.planit.ui.components.ListElement
+import com.chear.planit.ui.screens.ReminderViewModel
 
 @Composable
 fun RemindersScreen(
@@ -54,7 +55,7 @@ fun RemindersScreen(
                     note = reminder,
                     isReminder = true,
                     alHacerClick = { onReminderClick(reminder.id.toString()) },
-                    onDeleteClick = { reminderViewModel.deleteReminder(reminder) }
+                    onDeleteClick = { reminderViewModel.delete(reminder) }
                 )
             }
         }

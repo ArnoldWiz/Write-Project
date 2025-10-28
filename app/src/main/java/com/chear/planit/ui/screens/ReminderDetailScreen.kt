@@ -9,17 +9,24 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import com.chear.planit.data.Note
 import com.chear.planit.data.Reminder
+import com.chear.planit.ui.screens.ReminderViewModel
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.util.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.State
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,50 +35,55 @@ fun ReminderDetailScreen(
     onNavigateBack: () -> Unit,
     reminderViewModel: ReminderViewModel
 ) {
-
     val isEditing = reminderId != null
-
     val reminders by reminderViewModel.reminders.collectAsState()
 
     val reminderToEdit: Reminder? = reminderId?.toIntOrNull()?.let { id ->
         reminders.find { it.id == id }
     }
-
-    var reminderTitle by reminderViewModel.reminderTitle
-    var reminderBody by reminderViewModel.reminderBody
-    var reminderTimestamp by reminderViewModel.reminderTimestamp
-    var attachmentUri by reminderViewModel.attachmentUri
-
-    val pickAttachmentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-        onResult = { uri: Uri? ->
-            attachmentUri = uri?.toString()
-        }
-    )
+    val reminderTitle by reminderViewModel.reminderTitle
+    val reminderDescription by reminderViewModel.reminderDescription
+    val reminderDateTime by reminderViewModel.reminderDateTime
+    val reminderCompleted by reminderViewModel.reminderCompleted
+    val attachmentUri by reminderViewModel.attachmentUri
 
     LaunchedEffect(key1 = reminderToEdit) {
         reminderViewModel.loadReminder(reminderToEdit)
     }
+
+    val pickAttachmentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            reminderViewModel.onAttachmentChange(uri?.toString())
+        }
+    )
+
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+    val formattedDate = reminderDateTime?.let { dateFormatter.format(Date(it)) } ?: "Sin fecha"
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editar Recordatorio" else "Nuevo Recordatorio") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = {
+                        reminderViewModel.clearReminderFields()
+                        onNavigateBack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
                     Button(
                         onClick = {
-                            if (reminderTitle.isNotBlank() || reminderBody.isNotBlank()) {
+                            if (reminderTitle.isNotBlank() || reminderDescription.isNotBlank()) {
                                 if (isEditing && reminderToEdit != null) {
-                                    reminderViewModel.updateReminder(reminderToEdit)
+                                    reminderViewModel.update(reminderToEdit)
                                 } else {
                                     reminderViewModel.addReminder()
                                 }
                             }
+                            reminderViewModel.clearReminderFields()
                             onNavigateBack()
                         }
                     ) {
@@ -80,112 +92,47 @@ fun ReminderDetailScreen(
                 }
             )
         }
-    ) { paddingInterno ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingInterno)
+                .padding(paddingValues)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            var showDatePicker by remember { mutableStateOf(false) }
-            var showTimePicker by remember { mutableStateOf(false) }
-
-            val calendar = remember { Calendar.getInstance() }
-            calendar.timeInMillis = reminderTimestamp
-
-            val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
-            val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-
             OutlinedTextField(
                 value = reminderTitle,
-                onValueChange = { reminderTitle = it },
+                onValueChange = { reminderViewModel.onTitleChange(it) },
                 label = { Text("Título") },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(onClick = { showDatePicker = true }) {
-                    Text("Fecha")
-                }
-                Text(dateFormatter.format(calendar.time))
-                Button(onClick = { showTimePicker = true }) {
-                    Text("Hora")
-                }
-                Text(timeFormatter.format(calendar.time))
-            }
-
-            if (showDatePicker) {
-                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = reminderTimestamp)
-                DatePickerDialog(
-                    onDismissRequest = { showDatePicker = false },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                datePickerState.selectedDateMillis?.let { millis ->
-                                    val newCal = Calendar.getInstance().apply { timeInMillis = millis }
-                                    calendar.set(
-                                        newCal.get(Calendar.YEAR),
-                                        newCal.get(Calendar.MONTH),
-                                        newCal.get(Calendar.DAY_OF_MONTH)
-                                    )
-                                    reminderTimestamp = calendar.timeInMillis
-                                }
-                                showDatePicker = false
-                            }
-                        ) { Text("OK") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
-                    }
-                ) {
-                    DatePicker(state = datePickerState)
-                }
-            }
-
-            if (showTimePicker) {
-                val timePickerState = rememberTimePickerState(
-                    initialHour = calendar.get(Calendar.HOUR_OF_DAY),
-                    initialMinute = calendar.get(Calendar.MINUTE),
-                    is24Hour = true
-                )
-                AlertDialog(
-                    onDismissRequest = { showTimePicker = false },
-                    modifier = Modifier.fillMaxWidth(),
-                    title = { Text("Seleccionar Hora", style = MaterialTheme.typography.titleLarge) },
-                    text = {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            TimePicker(state = timePickerState)
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                                calendar.set(Calendar.MINUTE, timePickerState.minute)
-                                reminderTimestamp = calendar.timeInMillis
-                                showTimePicker = false
-                            }
-                        ) { Text("OK") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) { Text("Cancelar") }
-                    }
-                )
-            }
-
             OutlinedTextField(
-                value = reminderBody,
-                onValueChange = { reminderViewModel.onBodyChange(it) },
+                value = reminderDescription,
+                onValueChange = { reminderViewModel.onDescriptionChange(it) },
                 label = { Text("Descripción") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             )
+
+            Text("Fecha y hora: $formattedDate")
+
+            Button(onClick = {
+                reminderViewModel.onDateTimeChange(System.currentTimeMillis())
+            }) {
+                Text("Usar fecha/hora actual")
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = reminderCompleted,
+                    onCheckedChange = { reminderViewModel.onCompletedChange(it) }
+                )
+                Text("Completado")
+            }
 
             Button(onClick = { pickAttachmentLauncher.launch(arrayOf("*/*")) }) {
                 Text("Adjuntar archivo")
@@ -193,8 +140,11 @@ fun ReminderDetailScreen(
 
             attachmentUri?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Adjunto: ${it.toUri().lastPathSegment}", modifier = Modifier.weight(1f))
-                    IconButton(onClick = { attachmentUri = null }) {
+                    Text(
+                        "Adjunto: ${it.toUri().lastPathSegment}",
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { reminderViewModel.onAttachmentChange(null) }) {
                         Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
                     }
                 }
