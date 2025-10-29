@@ -68,7 +68,6 @@ fun PlanItApp(
     val isMainScreen =
         rutaActual == Ruts.NOTES_SCREEN || rutaActual == Ruts.REMINDERS_SCREEN
 
-    // ViewModel Factories
     val noteViewModelFactory = NoteViewModelFactory(noteRepository)
     val reminderViewModelFactory = ReminderViewModelFactory(reminderRepository)
 
