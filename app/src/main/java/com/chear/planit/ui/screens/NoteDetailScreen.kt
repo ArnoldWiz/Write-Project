@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Note
-import com.chear.planit.ui.screens.NoteViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -31,14 +30,16 @@ fun NoteDetailScreen(
     val noteToEdit: Note? = noteId?.toIntOrNull()?.let { id ->
         notes.find { it.id == id }
     }
-    val noteTitle by noteViewModel.noteTitle
-    val noteBody by noteViewModel.noteBody
-    val noteDate by noteViewModel.noteDate
-    val attachmentUri by noteViewModel.attachmentUri
 
+    // Cargar la nota en el ViewModel cuando la pantalla se compone por primera vez o la nota a editar cambia.
     LaunchedEffect(key1 = noteToEdit) {
         noteViewModel.loadNote(noteToEdit)
     }
+
+    // Obtener el estado actual de los campos desde el ViewModel
+    val noteTitle by noteViewModel.noteTitle
+    val noteBody by noteViewModel.noteBody
+    val attachmentUri by noteViewModel.attachmentUri
 
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -46,10 +47,8 @@ fun NoteDetailScreen(
             noteViewModel.onAttachmentChange(uri?.toString())
         }
     )
+
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
-    val formattedDate = remember(noteDate) {
-        noteDate?.let { dateFormatter.format(Date(it)) } ?: "Sin fecha"
-    }
 
     Scaffold(
         topBar = {
@@ -57,7 +56,7 @@ fun NoteDetailScreen(
                 title = { Text(if (isEditing) "Editar Nota" else "Nueva Nota") },
                 navigationIcon = {
                     IconButton(onClick = {
-                        noteViewModel.clearNoteFields()
+                        noteViewModel.clearNoteFields() // Limpiar campos antes de navegar hacia atrás
                         onNavigateBack()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -73,7 +72,7 @@ fun NoteDetailScreen(
                                     noteViewModel.addNote()
                                 }
                             }
-                            noteViewModel.clearNoteFields()
+                            noteViewModel.clearNoteFields() // Limpiar campos después de guardar
                             onNavigateBack()
                         }
                     ) {
@@ -106,12 +105,12 @@ fun NoteDetailScreen(
                     .weight(1f)
             )
 
-            Text("Última modificación: $formattedDate")
-
-            Button(onClick = {
-                noteViewModel.onDateChange(System.currentTimeMillis())
-            }) {
-                Text("Actualizar fecha actual")
+            // Mostrar la fecha de creación (si la nota existe)
+            if (isEditing && noteToEdit != null) {
+                val formattedDate = remember(noteToEdit.date) {
+                    dateFormatter.format(Date(noteToEdit.date))
+                }
+                Text("Fecha de creación: $formattedDate")
             }
 
             Button(onClick = { pickAttachmentLauncher.launch(arrayOf("*/*")) }) {

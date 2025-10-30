@@ -14,19 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Reminder
-import com.chear.planit.ui.screens.ReminderViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.State
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,15 +30,17 @@ fun ReminderDetailScreen(
     val reminderToEdit: Reminder? = reminderId?.toIntOrNull()?.let { id ->
         reminders.find { it.id == id }
     }
+
+    // Cargar el recordatorio en el ViewModel
+    LaunchedEffect(key1 = reminderToEdit) {
+        reminderViewModel.loadReminder(reminderToEdit)
+    }
+
     val reminderTitle by reminderViewModel.reminderTitle
     val reminderDescription by reminderViewModel.reminderDescription
     val reminderDateTime by reminderViewModel.reminderDateTime
     val reminderCompleted by reminderViewModel.reminderCompleted
     val attachmentUri by reminderViewModel.attachmentUri
-
-    LaunchedEffect(key1 = reminderToEdit) {
-        reminderViewModel.loadReminder(reminderToEdit)
-    }
 
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -58,8 +49,14 @@ fun ReminderDetailScreen(
         }
     )
 
-    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
-    val formattedDate = reminderDateTime?.let { dateFormatter.format(Date(it)) } ?: "Sin fecha"
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val calendar = remember { Calendar.getInstance() }
+    reminderDateTime?.let { calendar.timeInMillis = it }
+
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
+    val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
     Scaffold(
         topBar = {
@@ -107,6 +104,80 @@ fun ReminderDetailScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(onClick = { showDatePicker = true }) {
+                    Text("Fecha")
+                }
+                Text(dateFormatter.format(calendar.time))
+                Button(onClick = { showTimePicker = true }) {
+                    Text("Hora")
+                }
+                Text(timeFormatter.format(calendar.time))
+            }
+
+            if (showDatePicker) {
+                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = reminderDateTime ?: System.currentTimeMillis())
+                DatePickerDialog(
+                    onDismissRequest = { showDatePicker = false },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                datePickerState.selectedDateMillis?.let { millis ->
+                                    val newCal = Calendar.getInstance().apply { timeInMillis = millis }
+                                    calendar.set(
+                                        newCal.get(Calendar.YEAR),
+                                        newCal.get(Calendar.MONTH),
+                                        newCal.get(Calendar.DAY_OF_MONTH)
+                                    )
+                                    reminderViewModel.onDateTimeChange(calendar.timeInMillis)
+                                }
+                                showDatePicker = false
+                            }
+                        ) { Text("OK") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+                    }
+                ) {
+                    DatePicker(state = datePickerState)
+                }
+            }
+
+            if (showTimePicker) {
+                val timePickerState = rememberTimePickerState(
+                    initialHour = calendar.get(Calendar.HOUR_OF_DAY),
+                    initialMinute = calendar.get(Calendar.MINUTE),
+                    is24Hour = true
+                )
+                AlertDialog(
+                    onDismissRequest = { showTimePicker = false },
+                    modifier = Modifier.fillMaxWidth(),
+                    title = { Text("Seleccionar Hora", style = MaterialTheme.typography.titleLarge) },
+                    text = {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            TimePicker(state = timePickerState)
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                                calendar.set(Calendar.MINUTE, timePickerState.minute)
+                                reminderViewModel.onDateTimeChange(calendar.timeInMillis)
+                                showTimePicker = false
+                            }
+                        ) { Text("OK") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showTimePicker = false }) { Text("Cancelar") }
+                    }
+                )
+            }
+
             OutlinedTextField(
                 value = reminderDescription,
                 onValueChange = { reminderViewModel.onDescriptionChange(it) },
@@ -115,14 +186,6 @@ fun ReminderDetailScreen(
                     .fillMaxWidth()
                     .weight(1f)
             )
-
-            Text("Fecha y hora: $formattedDate")
-
-            Button(onClick = {
-                reminderViewModel.onDateTimeChange(System.currentTimeMillis())
-            }) {
-                Text("Usar fecha/hora actual")
-            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically

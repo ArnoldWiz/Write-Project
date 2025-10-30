@@ -1,5 +1,6 @@
 package com.chear.planit.ui.screens
 
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,88 +13,88 @@ import kotlinx.coroutines.launch
 
 class ReminderViewModel(private val repository: ReminderRepository) : ViewModel() {
 
-    val reminders: StateFlow<List<Reminder>> = repository.allReminders
+    val reminders: StateFlow<List<Reminder>> = repository.getAll()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    var reminderTitle = mutableStateOf("")
-        private set
-    var reminderDescription = mutableStateOf("")
-        private set
-    var reminderDateTime = mutableStateOf<Long?>(null)
-        private set
-    var reminderCompleted = mutableStateOf(false)
-        private set
-    var attachmentUri = mutableStateOf<String?>(null)
-        private set
+    // Estado para los campos del recordatorio
+    private val _reminderTitle = mutableStateOf("")
+    val reminderTitle: State<String> = _reminderTitle
 
-    fun onTitleChange(newTitle: String) {
-        reminderTitle.value = newTitle
-    }
+    private val _reminderDescription = mutableStateOf("")
+    val reminderDescription: State<String> = _reminderDescription
 
-    fun onDescriptionChange(newDescription: String) {
-        reminderDescription.value = newDescription
-    }
+    private val _reminderDateTime = mutableStateOf<Long?>(null)
+    val reminderDateTime: State<Long?> = _reminderDateTime
 
-    fun onDateTimeChange(newDateTime: Long?) {
-        reminderDateTime.value = newDateTime
-    }
+    private val _reminderCompleted = mutableStateOf(false)
+    val reminderCompleted: State<Boolean> = _reminderCompleted
 
-    fun onCompletedChange(isCompleted: Boolean) {
-        reminderCompleted.value = isCompleted
-    }
-
-    fun onAttachmentChange(newUri: String?) {
-        attachmentUri.value = newUri
-    }
-
-    fun addReminder() = viewModelScope.launch {
-        if (reminderTitle.value.isNotBlank() || reminderDescription.value.isNotBlank()) {
-            repository.insert(
-                Reminder(
-                    title = reminderTitle.value,
-                    description = reminderDescription.value,
-                    dateTime = reminderDateTime.value ?: System.currentTimeMillis(),
-                    isCompleted = reminderCompleted.value,
-                    attachmentUri = attachmentUri.value
-                )
-            )
-            clearReminderFields()
-        }
-    }
-
-    fun update(existingReminder: Reminder) = viewModelScope.launch {
-        val updated = existingReminder.copy(
-            title = reminderTitle.value,
-            description = reminderDescription.value,
-            dateTime = reminderDateTime.value ?: existingReminder.dateTime,
-            isCompleted = reminderCompleted.value,
-            attachmentUri = attachmentUri.value
-        )
-        repository.update(updated)
-        clearReminderFields()
-    }
-
-    fun delete(reminder: Reminder) = viewModelScope.launch {
-        repository.delete(reminder)
-    }
+    private val _attachmentUri = mutableStateOf<String?>(null)
+    val attachmentUri: State<String?> = _attachmentUri
 
     fun loadReminder(reminder: Reminder?) {
         if (reminder != null) {
-            reminderTitle.value = reminder.title
-            reminderDescription.value = reminder.description
-            reminderDateTime.value = reminder.dateTime
-            reminderCompleted.value = reminder.isCompleted
-            attachmentUri.value = reminder.attachmentUri
+            _reminderTitle.value = reminder.title
+            _reminderDescription.value = reminder.description
+            _reminderDateTime.value = reminder.dateTime
+            _reminderCompleted.value = reminder.isCompleted
+            _attachmentUri.value = reminder.attachmentUri
         } else {
             clearReminderFields()
         }
     }
 
     fun clearReminderFields() {
-        reminderTitle.value = ""
-        reminderDescription.value = ""
-        reminderDateTime.value = null
-        reminderCompleted.value = false
-        attachmentUri.value = null
+        _reminderTitle.value = ""
+        _reminderDescription.value = ""
+        _reminderDateTime.value = null
+        _reminderCompleted.value = false
+        _attachmentUri.value = null
+    }
+
+    fun onTitleChange(newTitle: String) {
+        _reminderTitle.value = newTitle
+    }
+
+    fun onDescriptionChange(newDescription: String) {
+        _reminderDescription.value = newDescription
+    }
+
+    fun onDateTimeChange(newDateTime: Long?) {
+        _reminderDateTime.value = newDateTime
+    }
+
+    fun onCompletedChange(isCompleted: Boolean) {
+        _reminderCompleted.value = isCompleted
+    }
+
+    fun onAttachmentChange(newUri: String?) {
+        _attachmentUri.value = newUri
+    }
+
+    fun addReminder() = viewModelScope.launch {
+        val newReminder = Reminder(
+            title = _reminderTitle.value,
+            description = _reminderDescription.value,
+            dateTime = _reminderDateTime.value ?: System.currentTimeMillis(),
+            isCompleted = _reminderCompleted.value,
+            attachmentUri = _attachmentUri.value
+        )
+        repository.insert(newReminder)
+    }
+
+    fun update(reminderToUpdate: Reminder) = viewModelScope.launch {
+        val updatedReminder = reminderToUpdate.copy(
+            title = _reminderTitle.value,
+            description = _reminderDescription.value,
+            dateTime = _reminderDateTime.value ?: reminderToUpdate.dateTime,
+            isCompleted = _reminderCompleted.value,
+            attachmentUri = _attachmentUri.value
+        )
+        repository.update(updatedReminder)
+    }
+
+    fun delete(reminder: Reminder) = viewModelScope.launch {
+        repository.delete(reminder)
     }
 }
