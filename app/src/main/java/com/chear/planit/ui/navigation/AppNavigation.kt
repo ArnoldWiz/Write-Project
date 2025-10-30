@@ -1,12 +1,6 @@
-
 package com.chear.planit.ui.navigation
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -15,14 +9,16 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -32,9 +28,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.chear.planit.R
+import com.chear.planit.data.Note
 import com.chear.planit.data.NoteRepository
+import com.chear.planit.data.Reminder
 import com.chear.planit.data.ReminderRepository
 import com.chear.planit.ui.screens.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 object Ruts {
     const val NOTES_SCREEN = "notes"
@@ -53,10 +53,12 @@ fun PlanItApp(
     noteRepository: NoteRepository,
     reminderRepository: ReminderRepository,
     windowSize: WindowSizeClass
-){
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val rutaActual = navBackStackEntry?.destination?.route ?: Ruts.NOTES_SCREEN
+    // Asegurarse que la ruta actual no contenga argumentos para la lógica de UI
+    val rutaActual = navBackStackEntry?.destination?.route?.substringBefore("/") ?: Ruts.NOTES_SCREEN
+
 
     val navigationType: NavigationType = when (windowSize.widthSizeClass) {
         WindowWidthSizeClass.Compact -> NavigationType.BOTTOM_NAVIGATION
@@ -124,7 +126,8 @@ fun PlanItAppContent(
 ) {
     Scaffold(
         topBar = {
-            if (isMainScreen) {
+            // Solo muestra la TopAppBar para diseños que no sean de panel triple
+            if (isMainScreen && navigationType != NavigationType.PERMANENT_NAVIGATION_DRAWER) {
                 TopAppBar(
                     title = {
                         Text(
@@ -170,78 +173,257 @@ fun PlanItAppContent(
             }
         }
     ) { paddingInterno ->
-        NavHost(
-            navController = navController,
-            startDestination = Ruts.NOTES_SCREEN,
-            modifier = Modifier.padding(paddingInterno)
-        ) {
-            composable(Ruts.NOTES_SCREEN) {
-                val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
-                NotesScreen(
-                    noteViewModel = noteViewModel,
-                    onNoteClick = { idNota ->
-                        navController.navigate("${Ruts.DETAIL_NOTE_SCREEN}/$idNota")
-                    }
-                )
+        // Lógica de navegación principal
+        val modifier = if (navigationType != NavigationType.PERMANENT_NAVIGATION_DRAWER)
+            Modifier.padding(paddingInterno)
+        else Modifier
+
+        if (navigationType == NavigationType.PERMANENT_NAVIGATION_DRAWER) {
+            // Navegación para pantallas expandidas (panel doble)
+            NavHost(
+                navController = navController,
+                startDestination = Ruts.NOTES_SCREEN,
+                modifier = modifier
+            ) {
+                composable(Ruts.NOTES_SCREEN) {
+                    val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
+                    NotesWithDetailScreen(
+                        noteViewModel = noteViewModel,
+                        onNoteClickToEdit = { idNota ->
+                            navController.navigate("${Ruts.DETAIL_NOTE_SCREEN}/$idNota")
+                        }
+                    )
+                }
+                composable(Ruts.REMINDERS_SCREEN) {
+                    val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
+                    RemindersWithDetailScreen(
+                        reminderViewModel = reminderViewModel,
+                        onReminderClickToEdit = { idRecordatorio ->
+                            navController.navigate("${Ruts.DETAIL_REMINDER_SCREEN}/$idRecordatorio")
+                        }
+                    )
+                }
+                // Rutas de detalle para edición (comunes para todos los tamaños)
+                detailRoutes(navController, noteViewModelFactory, reminderViewModelFactory)
             }
-            composable(Ruts.REMINDERS_SCREEN) {
-                val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
-                RemindersScreen(
-                    reminderViewModel = reminderViewModel,
-                    onReminderClick = { idRecordatorio ->
-                        navController.navigate("${Ruts.DETAIL_REMINDER_SCREEN}/$idRecordatorio")
-                    }
-                )
-            }
-            composable(Ruts.DETAIL_NOTE_SCREEN) {
-                val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
-                NoteDetailScreen(
-                    noteId = null,
-                    onNavigateBack = { navController.popBackStack() },
-                    noteViewModel = noteViewModel
-                )
-            }
-            composable(
-                route = "${Ruts.DETAIL_NOTE_SCREEN}/{idNota}",
-                arguments = listOf(navArgument("idNota") {
-                    type = NavType.StringType
-                    nullable = true
-                })
-            ) { backStackEntry ->
-                val idNota = backStackEntry.arguments?.getString("idNota")
-                val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
-                NoteDetailScreen(
-                    noteId = idNota,
-                    onNavigateBack = { navController.popBackStack() },
-                    noteViewModel = noteViewModel
-                )
-            }
-            composable(Ruts.DETAIL_REMINDER_SCREEN) {
-                val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
-                ReminderDetailScreen(
-                    reminderId = null,
-                    onNavigateBack = { navController.popBackStack() },
-                    reminderViewModel = reminderViewModel
-                )
-            }
-            composable(
-                route = "${Ruts.DETAIL_REMINDER_SCREEN}/{idRecordatorio}",
-                arguments = listOf(navArgument("idRecordatorio") {
-                    type = NavType.StringType
-                    nullable = true
-                })
-            ) { backStackEntry ->
-                val idRecordatorio = backStackEntry.arguments?.getString("idRecordatorio")
-                val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
-                ReminderDetailScreen(
-                    reminderId = idRecordatorio,
-                    onNavigateBack = { navController.popBackStack() },
-                    reminderViewModel = reminderViewModel
-                )
+        } else {
+            // Navegación para pantallas compactas y medianas
+            NavHost(
+                navController = navController,
+                startDestination = Ruts.NOTES_SCREEN,
+                modifier = modifier
+            ) {
+                composable(Ruts.NOTES_SCREEN) {
+                    val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
+                    NotesScreen(
+                        noteViewModel = noteViewModel,
+                        onNoteClick = { idNota ->
+                            navController.navigate("${Ruts.DETAIL_NOTE_SCREEN}/$idNota")
+                        }
+                    )
+                }
+                composable(Ruts.REMINDERS_SCREEN) {
+                    val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
+                    RemindersScreen(
+                        reminderViewModel = reminderViewModel,
+                        onReminderClick = { idRecordatorio ->
+                            navController.navigate("${Ruts.DETAIL_REMINDER_SCREEN}/$idRecordatorio")
+                        }
+                    )
+                }
+                // Rutas de detalle para edición (comunes para todos los tamaños)
+                detailRoutes(navController, noteViewModelFactory, reminderViewModelFactory)
             }
         }
     }
 }
+
+private fun androidx.navigation.NavGraphBuilder.detailRoutes(
+    navController: NavHostController,
+    noteViewModelFactory: NoteViewModelFactory,
+    reminderViewModelFactory: ReminderViewModelFactory
+) {
+    composable(Ruts.DETAIL_NOTE_SCREEN) {
+        val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
+        NoteDetailScreen(
+            noteId = null,
+            onNavigateBack = { navController.popBackStack() },
+            noteViewModel = noteViewModel
+        )
+    }
+    composable(
+        route = "${Ruts.DETAIL_NOTE_SCREEN}/{idNota}",
+        arguments = listOf(navArgument("idNota") {
+            type = NavType.StringType
+            nullable = true
+        })
+    ) { backStackEntry ->
+        val idNota = backStackEntry.arguments?.getString("idNota")
+        val noteViewModel: NoteViewModel = viewModel(factory = noteViewModelFactory)
+        NoteDetailScreen(
+            noteId = idNota,
+            onNavigateBack = { navController.popBackStack() },
+            noteViewModel = noteViewModel
+        )
+    }
+    composable(Ruts.DETAIL_REMINDER_SCREEN) {
+        val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
+        ReminderDetailScreen(
+            reminderId = null,
+            onNavigateBack = { navController.popBackStack() },
+            reminderViewModel = reminderViewModel
+        )
+    }
+    composable(
+        route = "${Ruts.DETAIL_REMINDER_SCREEN}/{idRecordatorio}",
+        arguments = listOf(navArgument("idRecordatorio") {
+            type = NavType.StringType
+            nullable = true
+        })
+    ) { backStackEntry ->
+        val idRecordatorio = backStackEntry.arguments?.getString("idRecordatorio")
+        val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)
+        ReminderDetailScreen(
+            reminderId = idRecordatorio,
+            onNavigateBack = { navController.popBackStack() },
+            reminderViewModel = reminderViewModel
+        )
+    }
+}
+
+// --- PANELES DE DETALLE (para panel doble) ---
+
+@Composable
+fun NoteDetailPane(
+    note: Note,
+    onEditClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(text = note.title.ifBlank { "Sin título" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(text = note.body.ifBlank { "Sin contenido" }, style = MaterialTheme.typography.bodyLarge)
+        note.attachmentUri?.let {
+            Text("Adjunto: ${it.toUri().lastPathSegment}", style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(Modifier.weight(1f))
+        Button(
+            onClick = onEditClick,
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Editar")
+        }
+    }
+}
+
+@Composable
+fun ReminderDetailPane(
+    reminder: Reminder,
+    onEditClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+    val calendar = Calendar.getInstance().apply { timeInMillis = reminder.dateTime }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(text = reminder.title.ifBlank { "Sin título" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(text = dateFormatter.format(calendar.time), style = MaterialTheme.typography.labelLarge)
+        Text(text = reminder.description.ifBlank { "Sin contenido" }, style = MaterialTheme.typography.bodyLarge)
+        reminder.attachmentUri?.let {
+            Text("Adjunto: ${it.toUri().lastPathSegment}", style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(Modifier.weight(1f))
+        Button(
+            onClick = onEditClick,
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Editar")
+        }
+    }
+}
+
+
+// --- PANTALLAS CON DETALLE (para panel doble) ---
+
+@Composable
+fun NotesWithDetailScreen(
+    noteViewModel: NoteViewModel,
+    onNoteClickToEdit: (String) -> Unit
+) {
+    val notes by noteViewModel.notes.collectAsState()
+    var selectedNoteId by rememberSaveable { mutableStateOf<Int?>(null) }
+    val selectedNote = notes.find { it.id == selectedNoteId }
+
+    Row(Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.weight(1f)) {
+            NotesScreen(
+                noteViewModel = noteViewModel,
+                onNoteClick = { noteIdString ->
+                    selectedNoteId = noteIdString.toIntOrNull()
+                }
+            )
+        }
+        VerticalDivider()
+        Box(modifier = Modifier.weight(1f)) {
+            if (selectedNote != null) {
+                NoteDetailPane(
+                    note = selectedNote,
+                    onEditClick = { onNoteClickToEdit(selectedNote.id.toString()) }
+                )
+            } else {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Selecciona una nota para ver los detalles")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RemindersWithDetailScreen(
+    reminderViewModel: ReminderViewModel,
+    onReminderClickToEdit: (String) -> Unit
+) {
+    val reminders by reminderViewModel.reminders.collectAsState()
+    var selectedReminderId by rememberSaveable { mutableStateOf<Int?>(null) }
+    val selectedReminder = reminders.find { it.id == selectedReminderId }
+
+    Row(Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.weight(1f)) {
+            RemindersScreen(
+                reminderViewModel = reminderViewModel,
+                onReminderClick = { reminderIdString ->
+                    selectedReminderId = reminderIdString.toIntOrNull()
+                }
+            )
+        }
+        VerticalDivider()
+        Box(modifier = Modifier.weight(1f)) {
+            if (selectedReminder != null) {
+                ReminderDetailPane(
+                    reminder = selectedReminder,
+                    onEditClick = { onReminderClickToEdit(selectedReminder.id.toString()) }
+                )
+            } else {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Selecciona un recordatorio para ver los detalles")
+                }
+            }
+        }
+    }
+}
+
+
+// --- COMPONENTES DE NAVEGACIÓN (sin cambios) ---
 
 @Composable
 fun PlanItBottomNavigationBar(
