@@ -29,8 +29,9 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
     private val _reminderCompleted = mutableStateOf(false)
     val reminderCompleted: State<Boolean> = _reminderCompleted
 
-    private val _attachmentUri = mutableStateOf<String?>(null)
-    val attachmentUri: State<String?> = _attachmentUri
+    // CAMBIO: Ahora usamos una lista de Strings para múltiples adjuntos
+    private val _attachmentUris = mutableStateOf<List<String>>(emptyList())
+    val attachmentUris: State<List<String>> = _attachmentUris
 
     fun loadReminder(reminder: Reminder?) {
         if (reminder != null) {
@@ -38,7 +39,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             _reminderDescription.value = reminder.description
             _reminderDateTime.value = reminder.dateTime
             _reminderCompleted.value = reminder.isCompleted
-            _attachmentUri.value = reminder.attachmentUri
+            _attachmentUris.value = reminder.attachmentUris
         } else {
             clearReminderFields()
         }
@@ -49,7 +50,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         _reminderDescription.value = ""
         _reminderDateTime.value = null
         _reminderCompleted.value = false
-        _attachmentUri.value = null
+        _attachmentUris.value = emptyList()
     }
 
     fun onTitleChange(newTitle: String) {
@@ -68,8 +69,19 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         _reminderCompleted.value = isCompleted
     }
 
-    fun onAttachmentChange(newUri: String?) {
-        _attachmentUri.value = newUri
+    // CAMBIO: Funciones para añadir y eliminar adjuntos a la lista
+    fun addAttachment(newUri: String?) {
+        newUri?.let {
+            val currentList = _attachmentUris.value.toMutableList()
+            currentList.add(it)
+            _attachmentUris.value = currentList
+        }
+    }
+
+    fun removeAttachment(uriToRemove: String) {
+        val currentList = _attachmentUris.value.toMutableList()
+        currentList.remove(uriToRemove)
+        _attachmentUris.value = currentList
     }
 
     fun addReminder() = viewModelScope.launch {
@@ -78,7 +90,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             description = _reminderDescription.value,
             dateTime = _reminderDateTime.value ?: System.currentTimeMillis(),
             isCompleted = _reminderCompleted.value,
-            attachmentUri = _attachmentUri.value
+            attachmentUris = _attachmentUris.value
         )
         repository.insert(newReminder)
     }
@@ -89,7 +101,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             description = _reminderDescription.value,
             dateTime = _reminderDateTime.value ?: reminderToUpdate.dateTime,
             isCompleted = _reminderCompleted.value,
-            attachmentUri = _attachmentUri.value
+            attachmentUris = _attachmentUris.value
         )
         repository.update(updatedReminder)
     }

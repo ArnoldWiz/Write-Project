@@ -1,19 +1,27 @@
 package com.chear.planit.ui.screens
 
+import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Note
+import com.chear.planit.utils.AudioRecorder
+import com.chear.planit.utils.FileUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,6 +32,7 @@ fun NoteDetailScreen(
     onNavigateBack: () -> Unit,
     noteViewModel: NoteViewModel
 ) {
+    val context = LocalContext.current
     val isEditing = noteId != null
     val notes by noteViewModel.notes.collectAsState()
 
@@ -31,22 +40,68 @@ fun NoteDetailScreen(
         notes.find { it.id == id }
     }
 
-    // Cargar la nota en el ViewModel cuando la pantalla se compone por primera vez o la nota a editar cambia.
     LaunchedEffect(key1 = noteToEdit) {
         noteViewModel.loadNote(noteToEdit)
     }
 
-    // Obtener el estado actual de los campos desde el ViewModel
     val noteTitle by noteViewModel.noteTitle
     val noteBody by noteViewModel.noteBody
-    val attachmentUri by noteViewModel.attachmentUri
+    val attachmentUris by noteViewModel.attachmentUris
 
+    // Selector de Archivos
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
-            noteViewModel.onAttachmentChange(uri?.toString())
+            noteViewModel.addAttachment(uri?.toString())
         }
     )
+
+    // Cámara (Foto)
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success && tempPhotoUri != null) {
+                noteViewModel.addAttachment(tempPhotoUri.toString())
+            }
+        }
+    )
+
+    // Cámara (Video)
+    var tempVideoUri by remember { mutableStateOf<Uri?>(null) }
+    val videoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CaptureVideo(),
+        onResult = { success ->
+            if (success && tempVideoUri != null) {
+                noteViewModel.addAttachment(tempVideoUri.toString())
+            }
+        }
+    )
+
+    // Audio
+    val recorder = remember { AudioRecorder(context) }
+    var isRecording by remember { mutableStateOf(false) }
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                if (isRecording) {
+                    recorder.stopRecording()
+                    isRecording = false
+                } else {
+                    val file = recorder.startRecording()
+                    if (file != null) {
+                        isRecording = true
+                        // Guardamos el archivo de audio en la lista
+                        noteViewModel.addAttachment(file.toUri().toString())
+                    }
+                }
+            }
+        }
+    )
+
+    // Estado para el menú desplegable
+    var showMenu by remember { mutableStateOf(false) }
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
 
@@ -56,7 +111,7 @@ fun NoteDetailScreen(
                 title = { Text(if (isEditing) "Editar Nota" else "Nueva Nota") },
                 navigationIcon = {
                     IconButton(onClick = {
-                        noteViewModel.clearNoteFields() // Limpiar campos antes de navegar hacia atrás
+                        noteViewModel.clearNoteFields()
                         onNavigateBack()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -72,7 +127,7 @@ fun NoteDetailScreen(
                                     noteViewModel.addNote()
                                 }
                             }
-                            noteViewModel.clearNoteFields() // Limpiar campos después de guardar
+                            noteViewModel.clearNoteFields()
                             onNavigateBack()
                         }
                     ) {
@@ -105,7 +160,6 @@ fun NoteDetailScreen(
                     .weight(1f)
             )
 
-            // Mostrar la fecha de creación (si la nota existe)
             if (isEditing && noteToEdit != null) {
                 val formattedDate = remember(noteToEdit.date) {
                     dateFormatter.format(Date(noteToEdit.date))
@@ -113,15 +167,97 @@ fun NoteDetailScreen(
                 Text("Fecha de creación: $formattedDate")
             }
 
-            Button(onClick = { pickAttachmentLauncher.launch(arrayOf("*/*")) }) {
-                Text("Adjuntar archivo")
+            // Botón Multimedia unificado
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isRecording) {
+                    Button(
+                        onClick = {
+                            recorder.stopRecording()
+                            isRecording = false
+                        },
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        // Usamos Clear (X) en lugar de Stop porque Stop no está disponible
+                        Icon(Icons.Default.Clear, contentDescription = "Detener grabación")
+                    }
+                } else {
+                    Button(
+                        onClick = { showMenu = true },
+                        shape = CircleShape,
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Icon(Icons.Default.Menu, contentDescription = "Multimedia")
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Adjuntar archivo") },
+                            onClick = {
+                                showMenu = false
+                                pickAttachmentLauncher.launch(arrayOf("*/*"))
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Tomar foto") },
+                            onClick = {
+                                showMenu = false
+                                val uri = FileUtils.createImageFile(context)
+                                tempPhotoUri = uri
+                                cameraLauncher.launch(uri)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Grabar video") },
+                            onClick = {
+                                showMenu = false
+                                val uri = FileUtils.createVideoFile(context)
+                                tempVideoUri = uri
+                                videoLauncher.launch(uri)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Grabar audio") },
+                            onClick = {
+                                showMenu = false
+                                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        )
+                    }
+                }
             }
 
-            attachmentUri?.let {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Adjunto: ${it.toUri().lastPathSegment}", modifier = Modifier.weight(1f))
-                    IconButton(onClick = { noteViewModel.onAttachmentChange(null) }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
+            if (attachmentUris.isNotEmpty()) {
+                Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.heightIn(max = 200.dp)
+                ) {
+                    items(attachmentUris) { uri ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(8.dp).fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = uri.toUri().lastPathSegment ?: "Archivo desconocido",
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                IconButton(onClick = { noteViewModel.removeAttachment(uri) }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
+                                }
+                            }
+                        }
                     }
                 }
             }

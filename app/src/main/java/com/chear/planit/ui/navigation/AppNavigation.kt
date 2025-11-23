@@ -1,6 +1,8 @@
 package com.chear.planit.ui.navigation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -56,7 +58,6 @@ fun PlanItApp(
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    // Asegurarse que la ruta actual no contenga argumentos para la lógica de UI
     val rutaActual = navBackStackEntry?.destination?.route?.substringBefore("/") ?: Ruts.NOTES_SCREEN
 
 
@@ -126,7 +127,6 @@ fun PlanItAppContent(
 ) {
     Scaffold(
         topBar = {
-            // Solo muestra la TopAppBar para diseños que no sean de panel triple
             if (isMainScreen && navigationType != NavigationType.PERMANENT_NAVIGATION_DRAWER) {
                 TopAppBar(
                     title = {
@@ -173,13 +173,11 @@ fun PlanItAppContent(
             }
         }
     ) { paddingInterno ->
-        // Lógica de navegación principal
         val modifier = if (navigationType != NavigationType.PERMANENT_NAVIGATION_DRAWER)
             Modifier.padding(paddingInterno)
         else Modifier
 
         if (navigationType == NavigationType.PERMANENT_NAVIGATION_DRAWER) {
-            // Navegación para pantallas expandidas (panel doble)
             NavHost(
                 navController = navController,
                 startDestination = Ruts.NOTES_SCREEN,
@@ -203,11 +201,9 @@ fun PlanItAppContent(
                         }
                     )
                 }
-                // Rutas de detalle para edición (comunes para todos los tamaños)
                 detailRoutes(navController, noteViewModelFactory, reminderViewModelFactory)
             }
         } else {
-            // Navegación para pantallas compactas y medianas
             NavHost(
                 navController = navController,
                 startDestination = Ruts.NOTES_SCREEN,
@@ -231,7 +227,6 @@ fun PlanItAppContent(
                         }
                     )
                 }
-                // Rutas de detalle para edición (comunes para todos los tamaños)
                 detailRoutes(navController, noteViewModelFactory, reminderViewModelFactory)
             }
         }
@@ -307,9 +302,22 @@ fun NoteDetailPane(
     ) {
         Text(text = note.title.ifBlank { "Sin título" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(text = note.body.ifBlank { "Sin contenido" }, style = MaterialTheme.typography.bodyLarge)
-        note.attachmentUri?.let {
-            Text("Adjunto: ${it.toUri().lastPathSegment}", style = MaterialTheme.typography.bodySmall)
+
+        if (note.attachmentUris.isNotEmpty()) {
+            Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.heightIn(max = 150.dp)
+            ) {
+                items(note.attachmentUris) { uri ->
+                    Text(
+                        text = "• ${uri.toUri().lastPathSegment ?: "Archivo"}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
+
         Spacer(Modifier.weight(1f))
         Button(
             onClick = onEditClick,
@@ -338,9 +346,22 @@ fun ReminderDetailPane(
         Text(text = reminder.title.ifBlank { "Sin título" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(text = dateFormatter.format(calendar.time), style = MaterialTheme.typography.labelLarge)
         Text(text = reminder.description.ifBlank { "Sin contenido" }, style = MaterialTheme.typography.bodyLarge)
-        reminder.attachmentUri?.let {
-            Text("Adjunto: ${it.toUri().lastPathSegment}", style = MaterialTheme.typography.bodySmall)
+
+        if (reminder.attachmentUris.isNotEmpty()) {
+            Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.heightIn(max = 150.dp)
+            ) {
+                items(reminder.attachmentUris) { uri ->
+                    Text(
+                        text = "• ${uri.toUri().lastPathSegment ?: "Archivo"}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
+
         Spacer(Modifier.weight(1f))
         Button(
             onClick = onEditClick,

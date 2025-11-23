@@ -1,19 +1,27 @@
 package com.chear.planit.ui.screens
 
+import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Reminder
+import com.chear.planit.utils.AudioRecorder
+import com.chear.planit.utils.FileUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,6 +32,7 @@ fun ReminderDetailScreen(
     onNavigateBack: () -> Unit,
     reminderViewModel: ReminderViewModel
 ) {
+    val context = LocalContext.current
     val isEditing = reminderId != null
     val reminders by reminderViewModel.reminders.collectAsState()
 
@@ -31,7 +40,6 @@ fun ReminderDetailScreen(
         reminders.find { it.id == id }
     }
 
-    // Cargar el recordatorio en el ViewModel
     LaunchedEffect(key1 = reminderToEdit) {
         reminderViewModel.loadReminder(reminderToEdit)
     }
@@ -40,14 +48,61 @@ fun ReminderDetailScreen(
     val reminderDescription by reminderViewModel.reminderDescription
     val reminderDateTime by reminderViewModel.reminderDateTime
     val reminderCompleted by reminderViewModel.reminderCompleted
-    val attachmentUri by reminderViewModel.attachmentUri
+    val attachmentUris by reminderViewModel.attachmentUris
 
+    // Selector de Archivos
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
-            reminderViewModel.onAttachmentChange(uri?.toString())
+            reminderViewModel.addAttachment(uri?.toString())
         }
     )
+
+    // Cámara (Foto)
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success && tempPhotoUri != null) {
+                reminderViewModel.addAttachment(tempPhotoUri.toString())
+            }
+        }
+    )
+
+    // Cámara (Video)
+    var tempVideoUri by remember { mutableStateOf<Uri?>(null) }
+    val videoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CaptureVideo(),
+        onResult = { success ->
+            if (success && tempVideoUri != null) {
+                reminderViewModel.addAttachment(tempVideoUri.toString())
+            }
+        }
+    )
+
+    // Audio
+    val recorder = remember { AudioRecorder(context) }
+    var isRecording by remember { mutableStateOf(false) }
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                if (isRecording) {
+                    recorder.stopRecording()
+                    isRecording = false
+                } else {
+                    val file = recorder.startRecording()
+                    if (file != null) {
+                        isRecording = true
+                        reminderViewModel.addAttachment(file.toUri().toString())
+                    }
+                }
+            }
+        }
+    )
+
+    // Estado para el menú desplegable
+    var showMenu by remember { mutableStateOf(false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -197,18 +252,96 @@ fun ReminderDetailScreen(
                 Text("Completado")
             }
 
-            Button(onClick = { pickAttachmentLauncher.launch(arrayOf("*/*")) }) {
-                Text("Adjuntar archivo")
+            // Botón Multimedia unificado
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isRecording) {
+                    Button(
+                        onClick = {
+                            recorder.stopRecording()
+                            isRecording = false
+                        },
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Icon(Icons.Default.Clear, contentDescription = "Detener grabación")
+                    }
+                } else {
+                    Button(
+                        onClick = { showMenu = true },
+                        shape = CircleShape,
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Icon(Icons.Default.Menu, contentDescription = "Multimedia")
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Adjuntar archivo") },
+                            onClick = {
+                                showMenu = false
+                                pickAttachmentLauncher.launch(arrayOf("*/*"))
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Tomar foto") },
+                            onClick = {
+                                showMenu = false
+                                val uri = FileUtils.createImageFile(context)
+                                tempPhotoUri = uri
+                                cameraLauncher.launch(uri)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Grabar video") },
+                            onClick = {
+                                showMenu = false
+                                val uri = FileUtils.createVideoFile(context)
+                                tempVideoUri = uri
+                                videoLauncher.launch(uri)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Grabar audio") },
+                            onClick = {
+                                showMenu = false
+                                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        )
+                    }
+                }
             }
 
-            attachmentUri?.let {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Adjunto: ${it.toUri().lastPathSegment}",
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = { reminderViewModel.onAttachmentChange(null) }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
+            if (attachmentUris.isNotEmpty()) {
+                Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.heightIn(max = 200.dp)
+                ) {
+                    items(attachmentUris) { uri ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(8.dp).fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = uri.toUri().lastPathSegment ?: "Archivo desconocido",
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                IconButton(onClick = { reminderViewModel.removeAttachment(uri) }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
+                                }
+                            }
+                        }
                     }
                 }
             }

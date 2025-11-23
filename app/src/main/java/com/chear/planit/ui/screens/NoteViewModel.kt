@@ -23,15 +23,16 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     private val _noteBody = mutableStateOf("")
     val noteBody: State<String> = _noteBody
 
-    private val _attachmentUri = mutableStateOf<String?>(null)
-    val attachmentUri: State<String?> = _attachmentUri
+    // CAMBIO: Ahora usamos una lista de Strings
+    private val _attachmentUris = mutableStateOf<List<String>>(emptyList())
+    val attachmentUris: State<List<String>> = _attachmentUris
 
     // Cargar los datos de una nota existente en el estado del ViewModel
     fun loadNote(note: Note?) {
         if (note != null) {
             _noteTitle.value = note.title
             _noteBody.value = note.body
-            _attachmentUri.value = note.attachmentUri
+            _attachmentUris.value = note.attachmentUris
         } else {
             clearNoteFields()
         }
@@ -41,7 +42,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     fun clearNoteFields() {
         _noteTitle.value = ""
         _noteBody.value = ""
-        _attachmentUri.value = null
+        _attachmentUris.value = emptyList()
     }
 
     // Actualizadores de estado
@@ -53,8 +54,19 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         _noteBody.value = newBody
     }
 
-    fun onAttachmentChange(newUri: String?) {
-        _attachmentUri.value = newUri
+    // CAMBIO: Funciones para añadir y eliminar adjuntos
+    fun addAttachment(newUri: String?) {
+        newUri?.let {
+            val currentList = _attachmentUris.value.toMutableList()
+            currentList.add(it)
+            _attachmentUris.value = currentList
+        }
+    }
+
+    fun removeAttachment(uriToRemove: String) {
+        val currentList = _attachmentUris.value.toMutableList()
+        currentList.remove(uriToRemove)
+        _attachmentUris.value = currentList
     }
 
     // Operaciones de la base de datos
@@ -62,8 +74,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         val newNote = Note(
             title = _noteTitle.value,
             body = _noteBody.value,
-            attachmentUri = _attachmentUri.value
-            // La fecha se establece por defecto en el constructor de Note
+            attachmentUris = _attachmentUris.value
         )
         repository.insert(newNote)
     }
@@ -72,8 +83,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         val updatedNote = noteToUpdate.copy(
             title = _noteTitle.value,
             body = _noteBody.value,
-            attachmentUri = _attachmentUri.value
-            // La fecha original de la nota no se modifica
+            attachmentUris = _attachmentUris.value
         )
         repository.update(updatedNote)
     }
