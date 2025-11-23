@@ -14,10 +14,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chear.planit.ui.components.ListElement
-import com.chear.planit.ui.screens.ReminderViewModel
 
 @Composable
 fun RemindersScreen(
@@ -25,6 +25,7 @@ fun RemindersScreen(
     onReminderClick: (String) -> Unit
 ) {
     val reminders by reminderViewModel.reminders.collectAsState()
+    val context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier
@@ -55,7 +56,7 @@ fun RemindersScreen(
                     note = reminder,
                     isReminder = true,
                     alHacerClick = { onReminderClick(reminder.id.toString()) },
-                    onDeleteClick = { reminderViewModel.delete(reminder) }
+                    onDeleteClick = { reminderViewModel.delete(reminder, context) }
                 )
             }
         }

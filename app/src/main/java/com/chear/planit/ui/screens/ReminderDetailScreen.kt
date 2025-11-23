@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -130,9 +131,9 @@ fun ReminderDetailScreen(
                         onClick = {
                             if (reminderTitle.isNotBlank() || reminderDescription.isNotBlank()) {
                                 if (isEditing && reminderToEdit != null) {
-                                    reminderViewModel.update(reminderToEdit)
+                                    reminderViewModel.update(reminderToEdit, context)
                                 } else {
-                                    reminderViewModel.addReminder()
+                                    reminderViewModel.addReminder(context)
                                 }
                             }
                             reminderViewModel.clearReminderFields()
@@ -140,6 +141,15 @@ fun ReminderDetailScreen(
                         }
                     ) {
                         Text("Guardar")
+                    }
+                    if (isEditing && reminderToEdit != null) {
+                        IconButton(onClick = {
+                            reminderViewModel.delete(reminderToEdit, context)
+                            reminderViewModel.clearReminderFields()
+                            onNavigateBack()
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                        }
                     }
                 }
             )

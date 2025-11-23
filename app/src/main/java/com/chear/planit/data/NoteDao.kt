@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface NoteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(nota: Note)
+    suspend fun insert(nota: Note): Long
 
     @Update
     suspend fun update(nota: Note)

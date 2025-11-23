@@ -11,7 +11,7 @@ object NotificationHelper {
 
     private const val CHANNEL_ID = "alarm_channel"
 
-    fun showNotification(context: Context, title: String, message: String) {
+    fun showNotification(context: Context, reminderId: Int, title: String, message: String) {
         val manager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -31,6 +31,6 @@ object NotificationHelper {
             .setAutoCancel(true)
             .build()
 
-        manager.notify(System.currentTimeMillis().toInt(), notif)
+        manager.notify(reminderId, notif)
     }
 }

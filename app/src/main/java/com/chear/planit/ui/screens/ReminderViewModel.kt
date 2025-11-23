@@ -1,15 +1,20 @@
 package com.chear.planit.ui.screens
 
+import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chear.planit.data.Reminder
 import com.chear.planit.data.ReminderRepository
+import com.chear.planit.utils.AlarmScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 class ReminderViewModel(private val repository: ReminderRepository) : ViewModel() {
 
@@ -29,7 +34,6 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
     private val _reminderCompleted = mutableStateOf(false)
     val reminderCompleted: State<Boolean> = _reminderCompleted
 
-    // CAMBIO: Ahora usamos una lista de Strings para múltiples adjuntos
     private val _attachmentUris = mutableStateOf<List<String>>(emptyList())
     val attachmentUris: State<List<String>> = _attachmentUris
 
@@ -69,7 +73,6 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         _reminderCompleted.value = isCompleted
     }
 
-    // CAMBIO: Funciones para añadir y eliminar adjuntos a la lista
     fun addAttachment(newUri: String?) {
         newUri?.let {
             val currentList = _attachmentUris.value.toMutableList()
@@ -84,7 +87,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         _attachmentUris.value = currentList
     }
 
-    fun addReminder() = viewModelScope.launch {
+    fun addReminder(context: Context) = viewModelScope.launch {
         val newReminder = Reminder(
             title = _reminderTitle.value,
             description = _reminderDescription.value,
@@ -92,10 +95,25 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             isCompleted = _reminderCompleted.value,
             attachmentUris = _attachmentUris.value
         )
-        repository.insert(newReminder)
+        val newId = repository.insert(newReminder)
+
+        _reminderDateTime.value?.let { triggerTime ->
+            if (triggerTime > System.currentTimeMillis()) {
+                // Log para depuración
+                val formattedTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(triggerTime))
+                Log.d("ALARM_SCHEDULING", "Programando alarma para ID: $newId a las: $formattedTime")
+
+                AlarmScheduler.schedule(
+                    context = context,
+                    reminderId = newId.toInt(),
+                    triggerAtMillis = triggerTime,
+                    message = _reminderTitle.value
+                )
+            }
+        }
     }
 
-    fun update(reminderToUpdate: Reminder) = viewModelScope.launch {
+    fun update(reminderToUpdate: Reminder, context: Context) = viewModelScope.launch {
         val updatedReminder = reminderToUpdate.copy(
             title = _reminderTitle.value,
             description = _reminderDescription.value,
@@ -104,9 +122,25 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             attachmentUris = _attachmentUris.value
         )
         repository.update(updatedReminder)
+
+        _reminderDateTime.value?.let { triggerTime ->
+            if (triggerTime > System.currentTimeMillis()) {
+                // Log para depuración
+                val formattedTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(triggerTime))
+                Log.d("ALARM_SCHEDULING", "Programando alarma para ID: ${updatedReminder.id} a las: $formattedTime")
+
+                AlarmScheduler.schedule(
+                    context = context,
+                    reminderId = updatedReminder.id,
+                    triggerAtMillis = triggerTime,
+                    message = _reminderTitle.value
+                )
+            }
+        }
     }
 
-    fun delete(reminder: Reminder) = viewModelScope.launch {
+    fun delete(reminder: Reminder, context: Context) = viewModelScope.launch {
         repository.delete(reminder)
+        AlarmScheduler.cancel(context, reminder.id)
     }
 }
