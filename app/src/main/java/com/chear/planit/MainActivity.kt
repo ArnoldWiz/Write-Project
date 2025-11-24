@@ -30,12 +30,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Crear canal de notificaciones
         createNotificationChannel()
 
-        // Pedir permisos necesarios
         requestNotificationPermission()
         requestExactAlarmPermission()
+        requestPermissions()
 
         val db = AppDatabase.getDatabase(applicationContext)
         val noteRepository = NoteRepository(db.noteDao())
@@ -82,6 +81,31 @@ class MainActivity : ComponentActivity() {
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
                 startActivity(intent)
             }
+        }
+    }
+
+    private fun requestPermissions() {
+        val permissionsToRequest = mutableListOf<String>()
+        permissionsToRequest.add(Manifest.permission.CAMERA)
+        permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES)
+            permissionsToRequest.add(Manifest.permission.READ_MEDIA_VIDEO)
+            permissionsToRequest.add(Manifest.permission.READ_MEDIA_AUDIO)
+        } else {
+            permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+                permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(
+                this,
+                permissionsToRequest.toTypedArray(),
+                100
+            )
         }
     }
 }

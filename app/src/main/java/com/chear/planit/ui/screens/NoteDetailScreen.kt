@@ -78,6 +78,31 @@ fun NoteDetailScreen(
         }
     )
 
+    // Autorizar Permisos
+    val requestCameraForPhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                val uri = FileUtils.createImageFile(context)
+                tempPhotoUri = uri
+                cameraLauncher.launch(uri)
+            }
+            // Permiso Denegado
+        }
+    )
+
+    val requestCameraForVideoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                val uri = FileUtils.createVideoFile(context)
+                tempVideoUri = uri
+                videoLauncher.launch(uri)
+            }
+            // Permiso Denegado
+        }
+    )
+
     // Audio
     val recorder = remember { AudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
@@ -209,18 +234,14 @@ fun NoteDetailScreen(
                             text = { Text("Tomar foto") },
                             onClick = {
                                 showMenu = false
-                                val uri = FileUtils.createImageFile(context)
-                                tempPhotoUri = uri
-                                cameraLauncher.launch(uri)
+                                requestCameraForPhotoLauncher.launch(Manifest.permission.CAMERA)
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Grabar video") },
                             onClick = {
                                 showMenu = false
-                                val uri = FileUtils.createVideoFile(context)
-                                tempVideoUri = uri
-                                videoLauncher.launch(uri)
+                                requestCameraForVideoLauncher.launch(Manifest.permission.CAMERA)
                             }
                         )
                         DropdownMenuItem(
