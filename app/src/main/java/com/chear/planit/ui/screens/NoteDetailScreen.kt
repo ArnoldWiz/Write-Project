@@ -22,6 +22,7 @@ import androidx.core.net.toUri
 import com.chear.planit.data.Note
 import com.chear.planit.utils.AudioRecorder
 import com.chear.planit.utils.FileUtils
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -47,6 +48,9 @@ fun NoteDetailScreen(
     val noteTitle by noteViewModel.noteTitle
     val noteBody by noteViewModel.noteBody
     val attachmentUris by noteViewModel.attachmentUris
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // Selector de Archivos
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
@@ -78,7 +82,7 @@ fun NoteDetailScreen(
         }
     )
 
-    // Autorizar Permisos
+    // Lanzador de permisos para la cámara (para fotos)
     val requestCameraForPhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
@@ -86,11 +90,15 @@ fun NoteDetailScreen(
                 val uri = FileUtils.createImageFile(context)
                 tempPhotoUri = uri
                 cameraLauncher.launch(uri)
+            } else {
+                scope.launch {
+                    snackbarHostState.showSnackbar("El permiso de la cámara es necesario para tomar fotos.")
+                }
             }
-            // Permiso Denegado
         }
     )
 
+    // Lanzador de permisos para la cámara (para videos)
     val requestCameraForVideoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
@@ -98,8 +106,11 @@ fun NoteDetailScreen(
                 val uri = FileUtils.createVideoFile(context)
                 tempVideoUri = uri
                 videoLauncher.launch(uri)
+            } else {
+                scope.launch {
+                    snackbarHostState.showSnackbar("El permiso de la cámara es necesario para grabar videos.")
+                }
             }
-            // Permiso Denegado
         }
     )
 
@@ -117,9 +128,12 @@ fun NoteDetailScreen(
                     val file = recorder.startRecording()
                     if (file != null) {
                         isRecording = true
-                        // Guardamos el archivo de audio en la lista
                         noteViewModel.addAttachment(file.toUri().toString())
                     }
+                }
+            } else {
+                scope.launch {
+                    snackbarHostState.showSnackbar("El permiso del micrófono es necesario para grabar audio.")
                 }
             }
         }
@@ -131,6 +145,7 @@ fun NoteDetailScreen(
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editar Nota" else "Nueva Nota") },
@@ -207,7 +222,6 @@ fun NoteDetailScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.size(64.dp)
                     ) {
-                        // Usamos Clear (X) en lugar de Stop porque Stop no está disponible
                         Icon(Icons.Default.Clear, contentDescription = "Detener grabación")
                     }
                 } else {
