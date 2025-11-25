@@ -11,7 +11,6 @@ class AudioRecorder(private val context: Context) {
     private var recorder: MediaRecorder? = null
     private var currentFile: File? = null
 
-    // Estado para saber si está pausado
     var isPaused = false
         private set
 

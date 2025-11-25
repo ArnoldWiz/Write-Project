@@ -94,7 +94,6 @@ fun NoteDetailScreen(
     // Audio
     val recorder = remember { AudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
-    // Nuevo estado para saber si está pausado
     var isPaused by remember { mutableStateOf(false) }
 
     val audioPermissionLauncher = rememberLauncherForActivityResult(
@@ -117,7 +116,6 @@ fun NoteDetailScreen(
         }
     )
 
-    // Estado para el menú desplegable
     var showMenu by remember { mutableStateOf(false) }
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
@@ -184,7 +182,6 @@ fun NoteDetailScreen(
                 Text("Fecha de creación: $formattedDate")
             }
 
-            // Botón Multimedia unificado y Controles de Audio
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -199,7 +196,6 @@ fun NoteDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            // Botón de Pausa/Reanudar (Solo Android N+)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                                 IconButton(
                                     onClick = {
@@ -233,7 +229,6 @@ fun NoteDetailScreen(
                                 }
                             }
 
-                            // Botón de Stop (Finalizar)
                             Button(
                                 onClick = {
                                     recorder.stopRecording()

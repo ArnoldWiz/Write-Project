@@ -10,5 +10,5 @@ data class Note(
     val title: String,
     val body: String,
     val date: Long = System.currentTimeMillis(),
-    val attachmentUris: List<String> = emptyList() // Ahora es una lista
+    val attachmentUris: List<String> = emptyList()
 )

@@ -55,6 +55,13 @@ fun ReminderDetailScreen(
     val reminderCompleted by reminderViewModel.reminderCompleted
     val attachmentUris by reminderViewModel.attachmentUris
 
+    // Inicializamos dateTime con el momento actual si es null
+    LaunchedEffect(Unit) {
+        if (reminderDateTime == null) {
+            reminderViewModel.onDateTimeChange(System.currentTimeMillis())
+        }
+    }
+
     // Selector de Archivos
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -118,7 +125,6 @@ fun ReminderDetailScreen(
         }
     )
 
-    // Estado para el menú desplegable
     var showMenu by remember { mutableStateOf(false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -242,6 +248,8 @@ fun ReminderDetailScreen(
                             onClick = {
                                 calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                                 calendar.set(Calendar.MINUTE, timePickerState.minute)
+                                calendar.set(Calendar.SECOND, 0)
+                                calendar.set(Calendar.MILLISECOND, 0)
                                 reminderViewModel.onDateTimeChange(calendar.timeInMillis)
                                 showTimePicker = false
                             }

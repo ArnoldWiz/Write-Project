@@ -26,7 +26,6 @@ fun ListElement(
     note: Any,
     isReminder: Boolean = false,
     alHacerClick: () -> Unit,
-    // CAMBIO: La función ahora pasa el Contexto
     onDeleteClick: ((Context) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -117,7 +116,6 @@ fun ListElement(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // CAMBIO: Pasamos el contexto al invocar el borrado
                         onDeleteClick?.invoke(context)
                         showDeleteDialog = false
                     }

@@ -311,14 +311,9 @@ fun NoteDetailPane(
                 modifier = Modifier.heightIn(max = 150.dp)
             ) {
                 items(note.attachmentUris) { uri ->
-                    // USAMOS EL NUEVO COMPONENTE AQUÍ TAMBIÉN
                     AttachmentItem(
                         uriString = uri,
-                        onRemove = { 
-                            // En el modo de solo lectura, quizás no queramos permitir borrar directamente,
-                            // o si lo permitimos, necesitaríamos pasar el ViewModel.
-                            // Por simplicidad visual, pasamos una lambda vacía, pero lo ideal sería ocultar el botón de borrar.
-                        }
+                        onRemove = { }
                     )
                 }
             }
@@ -360,11 +355,9 @@ fun ReminderDetailPane(
                 modifier = Modifier.heightIn(max = 150.dp)
             ) {
                 items(reminder.attachmentUris) { uri ->
-                    // USAMOS EL NUEVO COMPONENTE AQUÍ TAMBIÉN
                     AttachmentItem(
                         uriString = uri,
-                        onRemove = { 
-                            // Igual que en las notas, en modo lectura no borramos
+                        onRemove = {
                         }
                     )
                 }

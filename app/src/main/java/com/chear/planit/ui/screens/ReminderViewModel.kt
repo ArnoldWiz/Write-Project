@@ -25,6 +25,8 @@ import java.util.*
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class ReminderViewModel(private val repository: ReminderRepository) : ViewModel() {
 
+    private val TAG = "PLANIT_DEBUG"
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
@@ -118,58 +120,63 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
     }
 
     fun addReminder(context: Context) = viewModelScope.launch {
+        Log.d(TAG, "Iniciando guardado de recordatorio: ${_reminderTitle.value}")
+        
+        // CORRECCIÓN: Definir la fecha final aquí. Si _reminderDateTime es null, usar currentTimeMillis.
+        val finalDateTime = _reminderDateTime.value ?: System.currentTimeMillis()
+        
         val newReminder = Reminder(
             title = _reminderTitle.value,
             description = _reminderDescription.value,
-            dateTime = _reminderDateTime.value ?: System.currentTimeMillis(),
+            dateTime = finalDateTime,
             isCompleted = _reminderCompleted.value,
             attachmentUris = _attachmentUris.value
         )
         val newId = repository.insert(newReminder)
+        Log.d(TAG, "Recordatorio guardado en BD con ID: $newId y fecha: $finalDateTime")
 
-        _reminderDateTime.value?.let { triggerTime ->
-            if (triggerTime > System.currentTimeMillis()) {
-                // Log para depuración
-                val formattedTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(triggerTime))
-                Log.d("ALARM_SCHEDULING", "Programando alarma para ID: $newId a las: $formattedTime")
-
-                AlarmScheduler.schedule(
-                    context = context,
-                    reminderId = newId.toInt(),
-                    triggerAtMillis = triggerTime,
-                    message = _reminderTitle.value
-                )
-            }
-        }
+        // Programamos la alarma usando finalDateTime (que nunca será null)
+        val formattedTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(finalDateTime))
+        val currentTime = System.currentTimeMillis()
+        Log.d(TAG, "Fecha programada: $formattedTime ($finalDateTime). Actual: $currentTime")
+        
+        Log.d(TAG, "Llamando a AlarmScheduler para ID: $newId")
+        
+        AlarmScheduler.schedule(
+            context = context,
+            reminderId = newId.toInt(),
+            triggerAtMillis = finalDateTime,
+            message = _reminderTitle.value
+        )
     }
 
     fun update(reminderToUpdate: Reminder, context: Context) = viewModelScope.launch {
+        Log.d(TAG, "Actualizando recordatorio ID: ${reminderToUpdate.id}")
+        
+        val finalDateTime = _reminderDateTime.value ?: reminderToUpdate.dateTime
+        
         val updatedReminder = reminderToUpdate.copy(
             title = _reminderTitle.value,
             description = _reminderDescription.value,
-            dateTime = _reminderDateTime.value ?: reminderToUpdate.dateTime,
+            dateTime = finalDateTime,
             isCompleted = _reminderCompleted.value,
             attachmentUris = _attachmentUris.value
         )
         repository.update(updatedReminder)
 
-        _reminderDateTime.value?.let { triggerTime ->
-            if (triggerTime > System.currentTimeMillis()) {
-                // Log para depuración
-                val formattedTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(triggerTime))
-                Log.d("ALARM_SCHEDULING", "Programando alarma para ID: ${updatedReminder.id} a las: $formattedTime")
+        val formattedTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(finalDateTime))
+        Log.d(TAG, "Reprogramando alarma para ID: ${updatedReminder.id} a las: $formattedTime")
 
-                AlarmScheduler.schedule(
-                    context = context,
-                    reminderId = updatedReminder.id,
-                    triggerAtMillis = triggerTime,
-                    message = _reminderTitle.value
-                )
-            }
-        }
+        AlarmScheduler.schedule(
+            context = context,
+            reminderId = updatedReminder.id,
+            triggerAtMillis = finalDateTime,
+            message = _reminderTitle.value
+        )
     }
 
     fun delete(reminder: Reminder, context: Context) = viewModelScope.launch {
+        Log.d(TAG, "Eliminando recordatorio ID: ${reminder.id}")
         repository.delete(reminder)
         AlarmScheduler.cancel(context, reminder.id)
     }

@@ -11,5 +11,5 @@ data class Reminder(
     val description: String,
     val dateTime: Long,
     val isCompleted: Boolean = false,
-    val attachmentUris: List<String> = emptyList() // Ahora es una lista
+    val attachmentUris: List<String> = emptyList()
 )

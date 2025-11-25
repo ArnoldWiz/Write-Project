@@ -38,16 +38,13 @@ fun AttachmentItem(
     val fileName = remember(uri) { uri.lastPathSegment ?: "Archivo" }
     val mimeType = remember(uri) { context.contentResolver.getType(uri) }
     
-    // Determinamos el tipo de archivo basándonos en MIME o extensión para mostrar el icono correcto
     val isImage = mimeType?.startsWith("image") == true || fileName.endsWith(".jpg") || fileName.endsWith(".png")
     val isVideo = mimeType?.startsWith("video") == true || fileName.endsWith(".mp4")
     val isAudio = mimeType?.startsWith("audio") == true || fileName.endsWith(".3gp") || fileName.endsWith(".mp3")
 
-    // Función para abrir el archivo con una app externa
     fun openFile() {
         try {
             var finalUri = uri
-            // FIX 1: Si es un URI de tipo file:// (como los audios antiguos), lo convertimos a content:// seguro
             if (uri.scheme == "file") {
                 val file = File(uri.path ?: "")
                 finalUri = FileProvider.getUriForFile(
@@ -57,7 +54,6 @@ fun AttachmentItem(
                 )
             }
 
-            // FIX 2: Intentar mejorar la detección del MimeType si es nulo
             var finalMimeType = mimeType
             if (finalMimeType == null) {
                 val extension = fileName.substringAfterLast('.', "")
@@ -67,13 +63,12 @@ fun AttachmentItem(
             }
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(finalUri, finalMimeType ?: "*/*") // */* es el comodín si todo falla
+                setDataAndType(finalUri, finalMimeType ?: "*/*")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(intent, "Abrir con"))
         } catch (e: Exception) {
             e.printStackTrace()
-            // Podrías mostrar un Toast aquí si ocurre un error al abrir
         }
     }
 
@@ -81,13 +76,12 @@ fun AttachmentItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { openFile() } // Hacemos clickeable toda la tarjeta
+            .clickable { openFile() }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(8.dp)
         ) {
-            // Zona de Icono o Miniatura
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -96,7 +90,6 @@ fun AttachmentItem(
             ) {
                 when {
                     isImage -> {
-                        // Cargador simple de miniaturas para imágenes
                         var bitmap by remember { mutableStateOf<Bitmap?>(null) }
                         LaunchedEffect(uri) {
                             bitmap = loadThumbnail(context, uri)
@@ -114,7 +107,6 @@ fun AttachmentItem(
                         }
                     }
                     isVideo -> {
-                        // Cargador de miniaturas para videos
                         var videoBitmap by remember { mutableStateOf<Bitmap?>(null) }
                         LaunchedEffect(uri) {
                             videoBitmap = loadVideoThumbnail(context, uri)
@@ -128,7 +120,6 @@ fun AttachmentItem(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
                                 )
-                                // Icono de play superpuesto semitransparente
                                 Icon(
                                     Icons.Default.PlayArrow, 
                                     contentDescription = null, 
@@ -149,7 +140,6 @@ fun AttachmentItem(
                 }
             }
 
-            // Nombre del archivo
             Text(
                 text = fileName,
                 modifier = Modifier.weight(1f),
@@ -158,7 +148,6 @@ fun AttachmentItem(
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Botón de eliminar
             IconButton(onClick = onRemove) {
                 Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
             }
@@ -166,17 +155,13 @@ fun AttachmentItem(
     }
 }
 
-// Función auxiliar para cargar una imagen reducida (thumbnail) y evitar problemas de memoria
 suspend fun loadThumbnail(context: Context, uri: Uri): Bitmap? = withContext(Dispatchers.IO) {
     try {
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            // Primero decodificamos solo las dimensiones para calcular el escalado
             val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeStream(inputStream, null, options)
-            
-            // Cerramos y reabrimos el stream porque decodeStream lo consume
+
             context.contentResolver.openInputStream(uri)?.use { stream2 ->
-                // Calculamos el sampleSize para cargar una imagen pequeña (aprox 100x100)
                 options.inSampleSize = calculateInSampleSize(options, 100, 100)
                 options.inJustDecodeBounds = false
                 BitmapFactory.decodeStream(stream2, null, options)
@@ -188,12 +173,10 @@ suspend fun loadThumbnail(context: Context, uri: Uri): Bitmap? = withContext(Dis
     }
 }
 
-// Nueva función para extraer un frame del video
 suspend fun loadVideoThumbnail(context: Context, uri: Uri): Bitmap? = withContext(Dispatchers.IO) {
     val retriever = MediaMetadataRetriever()
     try {
         retriever.setDataSource(context, uri)
-        // Obtiene un frame en el tiempo 0 (al principio del video)
         retriever.getFrameAtTime()
     } catch (e: Exception) {
         e.printStackTrace()
