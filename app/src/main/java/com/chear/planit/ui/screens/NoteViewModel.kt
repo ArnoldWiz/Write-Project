@@ -6,15 +6,45 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chear.planit.data.Note
 import com.chear.planit.data.NoteRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
-    val notes: StateFlow<List<Note>> = repository.getAll()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    private val _notes = repository.getAll()
+    val notes: StateFlow<List<Note>> = searchQuery
+        .debounce(500)
+        .combine(_notes) { query, notes ->
+            if (query.isBlank()) {
+                notes
+            } else {
+                notes.filter {
+                    it.title.contains(query, ignoreCase = true) ||
+                            it.body.contains(query, ignoreCase = true)
+                }
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+    }
 
     // Estado para los campos de la nota
     private val _noteTitle = mutableStateOf("")
@@ -23,7 +53,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     private val _noteBody = mutableStateOf("")
     val noteBody: State<String> = _noteBody
 
-    // CAMBIO: Ahora usamos una lista de Strings
+    // Ahora usamos una lista de Strings
     private val _attachmentUris = mutableStateOf<List<String>>(emptyList())
     val attachmentUris: State<List<String>> = _attachmentUris
 
@@ -54,7 +84,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         _noteBody.value = newBody
     }
 
-    // CAMBIO: Funciones para añadir y eliminar adjuntos
+    // Funciones para añadir y eliminar adjuntos
     fun addAttachment(newUri: String?) {
         newUri?.let {
             val currentList = _attachmentUris.value.toMutableList()

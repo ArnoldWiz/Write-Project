@@ -9,17 +9,47 @@ import androidx.lifecycle.viewModelScope
 import com.chear.planit.data.Reminder
 import com.chear.planit.data.ReminderRepository
 import com.chear.planit.utils.AlarmScheduler
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class ReminderViewModel(private val repository: ReminderRepository) : ViewModel() {
 
-    val reminders: StateFlow<List<Reminder>> = repository.getAll()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    private val _reminders = repository.getAll()
+    val reminders: StateFlow<List<Reminder>> = searchQuery
+        .debounce(500)
+        .combine(_reminders) { query, reminders ->
+            if (query.isBlank()) {
+                reminders
+            } else {
+                reminders.filter {
+                    it.title.contains(query, ignoreCase = true) ||
+                            (it.description?.contains(query, ignoreCase = true) ?: false)
+                }
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+    }
 
     // Estado para los campos del recordatorio
     private val _reminderTitle = mutableStateOf("")
