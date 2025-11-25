@@ -52,8 +52,6 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
     }
-
-    // Estado para los campos del recordatorio
     private val _reminderTitle = mutableStateOf("")
     val reminderTitle: State<String> = _reminderTitle
 
@@ -122,7 +120,6 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
     fun addReminder(context: Context) = viewModelScope.launch {
         Log.d(TAG, "Iniciando guardado de recordatorio: ${_reminderTitle.value}")
         
-        // CORRECCIÓN: Definir la fecha final aquí. Si _reminderDateTime es null, usar currentTimeMillis.
         val finalDateTime = _reminderDateTime.value ?: System.currentTimeMillis()
         
         val newReminder = Reminder(
@@ -135,19 +132,22 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         val newId = repository.insert(newReminder)
         Log.d(TAG, "Recordatorio guardado en BD con ID: $newId y fecha: $finalDateTime")
 
-        // Programamos la alarma usando finalDateTime (que nunca será null)
-        val formattedTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(finalDateTime))
-        val currentTime = System.currentTimeMillis()
-        Log.d(TAG, "Fecha programada: $formattedTime ($finalDateTime). Actual: $currentTime")
-        
-        Log.d(TAG, "Llamando a AlarmScheduler para ID: $newId")
-        
-        AlarmScheduler.schedule(
-            context = context,
-            reminderId = newId.toInt(),
-            triggerAtMillis = finalDateTime,
-            message = _reminderTitle.value
-        )
+        if (!newReminder.isCompleted) {
+            val formattedTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(finalDateTime))
+            val currentTime = System.currentTimeMillis()
+            Log.d(TAG, "Fecha programada: $formattedTime ($finalDateTime). Actual: $currentTime")
+            
+            Log.d(TAG, "Llamando a AlarmScheduler para ID: $newId")
+            
+            AlarmScheduler.schedule(
+                context = context,
+                reminderId = newId.toInt(),
+                triggerAtMillis = finalDateTime,
+                message = _reminderTitle.value
+            )
+        } else {
+            Log.d(TAG, "Recordatorio completado, no se programa alarma para ID: $newId")
+        }
     }
 
     fun update(reminderToUpdate: Reminder, context: Context) = viewModelScope.launch {
@@ -164,15 +164,20 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         )
         repository.update(updatedReminder)
 
-        val formattedTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(finalDateTime))
-        Log.d(TAG, "Reprogramando alarma para ID: ${updatedReminder.id} a las: $formattedTime")
+        if (updatedReminder.isCompleted) {
+            Log.d(TAG, "Recordatorio completado, cancelando alarma para ID: ${updatedReminder.id}")
+            AlarmScheduler.cancel(context, updatedReminder.id)
+        } else {
+            val formattedTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(finalDateTime))
+            Log.d(TAG, "Reprogramando alarma para ID: ${updatedReminder.id} a las: $formattedTime")
 
-        AlarmScheduler.schedule(
-            context = context,
-            reminderId = updatedReminder.id,
-            triggerAtMillis = finalDateTime,
-            message = _reminderTitle.value
-        )
+            AlarmScheduler.schedule(
+                context = context,
+                reminderId = updatedReminder.id,
+                triggerAtMillis = finalDateTime,
+                message = _reminderTitle.value
+            )
+        }
     }
 
     fun delete(reminder: Reminder, context: Context) = viewModelScope.launch {

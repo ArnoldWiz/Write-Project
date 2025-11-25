@@ -26,7 +26,8 @@ fun ListElement(
     note: Any,
     isReminder: Boolean = false,
     alHacerClick: () -> Unit,
-    onDeleteClick: ((Context) -> Unit)? = null
+    onDeleteClick: ((Context) -> Unit)? = null,
+    onCheckedChange: ((Boolean) -> Unit)? = null
 ) {
     val context = LocalContext.current
     var checked by remember { mutableStateOf(false) }
@@ -45,6 +46,7 @@ fun ListElement(
             title = note.title
             body = note.description
             dateTime = note.dateTime
+            checked = note.isCompleted
         }
         else -> {
             title = "Elemento desconocido"
@@ -69,7 +71,10 @@ fun ListElement(
             if (isReminder) {
                 Checkbox(
                     checked = checked,
-                    onCheckedChange = { checked = it }
+                    onCheckedChange = { 
+                        checked = it 
+                        onCheckedChange?.invoke(it)
+                    }
                 )
             }
 

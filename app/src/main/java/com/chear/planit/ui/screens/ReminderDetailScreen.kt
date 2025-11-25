@@ -292,7 +292,7 @@ fun ReminderDetailScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                                 IconButton(

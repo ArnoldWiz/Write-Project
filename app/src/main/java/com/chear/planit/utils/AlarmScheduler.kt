@@ -21,7 +21,6 @@ object AlarmScheduler {
 
     @SuppressLint("ScheduleExactAlarm")
     fun schedule(context: Context, reminderId: Int, triggerAtMillis: Long, message: String) {
-        // Usamos applicationContext para evitar referencias a contextos de Activity destruidos
         val appContext = context.applicationContext
         val alarm = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -30,8 +29,6 @@ object AlarmScheduler {
 
         if (triggerAtMillis <= System.currentTimeMillis()) {
             Log.w(TAG, "Trying to schedule alarm in the past. Ignoring exact alarm.")
-            // No retornamos aquí porque aún podríamos querer programar el resumen diario si es futuro,
-            // pero generalmente una alarma exacta en el pasado se debe disparar inmediatamente o ignorar.
         }
 
         // -- 1. Alarma para la Hora Exacta --
@@ -42,8 +39,7 @@ object AlarmScheduler {
             putExtra(AlarmReceiver.NOTIFICATION_TYPE_EXTRA, AlarmReceiver.TYPE_EXACT_TIME)
         }
 
-        // Usamos FLAG_CANCEL_CURRENT para asegurar que cualquier pending intent viejo sea reemplazado
-        val exactPending = PendingIntent.getBroadcast(
+         val exactPending = PendingIntent.getBroadcast(
             appContext,
             reminderId, 
             exactIntent,
@@ -63,8 +59,6 @@ object AlarmScheduler {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarm.canScheduleExactAlarms()) {
                 Log.e(TAG, "Cannot schedule exact alarms. Permission missing.")
-                // Aquí deberías notificar al usuario o degradar a alarma inexacta, 
-                // pero idealmente la app ya pidió el permiso.
                 alarm.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, exactPending)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, viewPending)
@@ -90,8 +84,50 @@ object AlarmScheduler {
             alarm.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, exactPending)
         }
 
-        // -- 2. Alarma para el Resumen Diario (a las 9 AM) --
-        // ... (código existente para resumen diario)
+        // -- 2. Alarma para el Resumen Diario --
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = triggerAtMillis
+            set(Calendar.HOUR_OF_DAY, 9)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        if (calendar.timeInMillis > System.currentTimeMillis()) {
+            val dailyIntent = Intent(appContext, AlarmReceiver::class.java).apply {
+                action = ALARM_ACTION
+                putExtra("reminder_id", reminderId)
+                putExtra("message", message)
+                putExtra(AlarmReceiver.NOTIFICATION_TYPE_EXTRA, AlarmReceiver.TYPE_DAILY_SUMMARY)
+            }
+
+            val dailyPending = PendingIntent.getBroadcast(
+                appContext,
+                reminderId + 1000000, // Offset ID para diferenciar del exacto
+                dailyIntent,
+                PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarm.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        calendar.timeInMillis,
+                        dailyPending
+                    )
+                } else {
+                    alarm.setExact(
+                        AlarmManager.RTC_WAKEUP,
+                        calendar.timeInMillis,
+                        dailyPending
+                    )
+                }
+                Log.d(TAG, "Daily summary alarm scheduled")
+            } catch (e: SecurityException) {
+                Log.e(TAG, "SecurityException scheduling daily alarm", e)
+                alarm.set(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, dailyPending)
+            }
+        }
     }
 
     fun cancel(context: Context, reminderId: Int) {
@@ -99,6 +135,7 @@ object AlarmScheduler {
         val appContext = context.applicationContext
         val alarm = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
+        // Cancelar alarma exacta
         val exactIntent = Intent(appContext, AlarmReceiver::class.java).apply { action = ALARM_ACTION }
         val exactPending = PendingIntent.getBroadcast(
             appContext,
@@ -107,8 +144,17 @@ object AlarmScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarm.cancel(exactPending)
-        exactPending.cancel() // Importante cancelar también el PendingIntent
+        exactPending.cancel()
 
-        // Cancelar resumen diario...
+        // Cancelar alarma diaria
+        val dailyIntent = Intent(appContext, AlarmReceiver::class.java).apply { action = ALARM_ACTION }
+        val dailyPending = PendingIntent.getBroadcast(
+            appContext,
+            reminderId + 1000000,
+            dailyIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarm.cancel(dailyPending)
+        dailyPending.cancel()
     }
 }

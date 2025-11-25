@@ -81,6 +81,12 @@ fun RemindersScreen(
                         alHacerClick = { onReminderClick(reminder.id.toString()) },
                         onDeleteClick = { 
                             reminderViewModel.delete(reminder, context) 
+                        },
+                        onCheckedChange = { isChecked ->
+                            reminderViewModel.loadReminder(reminder)
+                            reminderViewModel.onCompletedChange(isChecked)
+                            reminderViewModel.update(reminder, context)
+                            reminderViewModel.clearReminderFields()
                         }
                     )
                 }

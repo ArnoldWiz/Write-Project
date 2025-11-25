@@ -28,7 +28,6 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "onReceive triggered. Action: ${intent.action}")
 
-        // Asegurar que el canal exista
         createNotificationChannel(context)
 
         val reminderId = intent.getIntExtra("reminder_id", 0)
@@ -37,14 +36,13 @@ class AlarmReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "Processing reminder: ID=$reminderId, Type=$notificationType, Message=$message")
 
-        // Personalización del Título y Texto de la notificación
         val contentTitle: String
         val contentText: String
 
         when (notificationType) {
             TYPE_EXACT_TIME -> {
                 contentTitle = "¡ES HORA!"
-                contentText = message // Aquí va el nombre del recordatorio
+                contentText = message
             }
             TYPE_DAILY_SUMMARY -> {
                 contentTitle = "Recordatorio Diario"
@@ -56,7 +54,6 @@ class AlarmReceiver : BroadcastReceiver() {
             }
         }
 
-        // Intent para abrir la app al tocar la notificación
         val tapIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -69,15 +66,14 @@ class AlarmReceiver : BroadcastReceiver() {
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(contentTitle) // Usamos el título personalizado
-            .setContentText(contentText)   // Usamos el mensaje personalizado
+            .setContentTitle(contentTitle)
+            .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(tapPendingIntent)
             .setAutoCancel(true)
 
-        // Comprobar permiso antes de mostrar
         if (ActivityCompat.checkSelfPermission(
                 context,
                 android.Manifest.permission.POST_NOTIFICATIONS
