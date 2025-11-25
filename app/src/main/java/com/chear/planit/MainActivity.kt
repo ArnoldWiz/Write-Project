@@ -4,7 +4,9 @@ import android.Manifest
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -16,6 +18,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.chear.planit.alarm.AlarmReceiver
 import com.chear.planit.data.AppDatabase
 import com.chear.planit.data.NoteRepository
 import com.chear.planit.data.ReminderRepository
@@ -31,10 +34,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         createNotificationChannel()
-
-        requestNotificationPermission()
-        requestExactAlarmPermission()
-        requestPermissions()
+        checkAndRequestPermissions()
 
         val db = AppDatabase.getDatabase(applicationContext)
         val noteRepository = NoteRepository(db.noteDao())
@@ -53,39 +53,25 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun createNotificationChannel() {
+        // Crear el canal de notificaciones para Android 8.0+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "alarm_channel",
-                "Alarmas",
-                NotificationManager.IMPORTANCE_HIGH
-            )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
-        }
-    }
-
-    private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                200
-            )
-        }
-    }
-
-    private fun requestExactAlarmPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(AlarmManager::class.java)
-            if (!alarmManager.canScheduleExactAlarms()) {
-                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                startActivity(intent)
+            val name = "Recordatorios de Plan It"
+            val descriptionText = "Canal para las notificaciones de recordatorios"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            // Usamos el MISMO ID que en AlarmReceiver
+            val channel = NotificationChannel(AlarmReceiver.CHANNEL_ID, name, importance).apply {
+                description = descriptionText
             }
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
         }
     }
 
-    private fun requestPermissions() {
+    private fun checkAndRequestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
+
+        // Permisos multimedia y cámara
         permissionsToRequest.add(Manifest.permission.CAMERA)
         permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
 
@@ -93,6 +79,8 @@ class MainActivity : ComponentActivity() {
             permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES)
             permissionsToRequest.add(Manifest.permission.READ_MEDIA_VIDEO)
             permissionsToRequest.add(Manifest.permission.READ_MEDIA_AUDIO)
+            // Permiso de notificaciones para Android 13+
+            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
         } else {
             permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
@@ -100,12 +88,25 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if (permissionsToRequest.isNotEmpty()) {
+        val notGrantedPermissions = permissionsToRequest.filter {
+            ActivityCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (notGrantedPermissions.isNotEmpty()) {
             ActivityCompat.requestPermissions(
                 this,
-                permissionsToRequest.toTypedArray(),
+                notGrantedPermissions.toTypedArray(),
                 100
             )
+        }
+
+        // Permiso especial para Alarmas Exactas (Android 12+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(AlarmManager::class.java)
+            if (!alarmManager.canScheduleExactAlarms()) {
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                startActivity(intent)
+            }
         }
     }
 }

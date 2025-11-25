@@ -2,26 +2,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Permisos para Cámara, Audio y Archivos -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
-
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-
+    <!-- Permisos para Notificaciones y Alarmas -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-
+    
+    <!-- Permiso para Reinicio -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -38,11 +33,11 @@
             android:theme="@style/Theme.PlanIt">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- Proveedor de archivos para compartir fotos/videos/audios -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -53,11 +48,19 @@
                 android:resource="@xml/provider_paths" />
         </provider>
 
+        <!-- Receptor para las alarmas de notificaciones -->
         <receiver
             android:name=".alarm.AlarmReceiver"
-            android:exported="true">
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Receptor para reprogramar alarmas al reiniciar (NUEVO) -->
+        <receiver
+            android:name=".alarm.BootReceiver"
+            android:enabled="true"
+            android:exported="false">
             <intent-filter>
-                <action android:name="com.chear.planit.ALARM_TRIGGERED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 

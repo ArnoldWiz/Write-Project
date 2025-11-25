@@ -96,7 +96,6 @@ fun ReminderDetailScreen(
     // Audio
     val recorder = remember { AudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
-    // Nuevo estado para saber si está pausado
     var isPaused by remember { mutableStateOf(false) }
 
     val audioPermissionLauncher = rememberLauncherForActivityResult(
@@ -148,7 +147,7 @@ fun ReminderDetailScreen(
                         onClick = {
                             if (reminderTitle.isNotBlank() || reminderDescription.isNotBlank()) {
                                 if (isEditing && reminderToEdit != null) {
-                                    reminderViewModel.update(reminderToEdit!!, context)
+                                    reminderViewModel.update(reminderToEdit, context)
                                 } else {
                                     reminderViewModel.addReminder(context)
                                 }
@@ -200,11 +199,14 @@ fun ReminderDetailScreen(
                         TextButton(
                             onClick = {
                                 datePickerState.selectedDateMillis?.let { millis ->
-                                    val newCal = Calendar.getInstance().apply { timeInMillis = millis }
+                                    // SOLUCIÓN: Crear calendario UTC para obtener la fecha correcta
+                                    val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                                    utcCalendar.timeInMillis = millis
+                                    // Aplicar solo la FECHA al calendario local, manteniendo la HORA local
                                     calendar.set(
-                                        newCal.get(Calendar.YEAR),
-                                        newCal.get(Calendar.MONTH),
-                                        newCal.get(Calendar.DAY_OF_MONTH)
+                                        utcCalendar.get(Calendar.YEAR),
+                                        utcCalendar.get(Calendar.MONTH),
+                                        utcCalendar.get(Calendar.DAY_OF_MONTH)
                                     )
                                     reminderViewModel.onDateTimeChange(calendar.timeInMillis)
                                 }
@@ -270,7 +272,6 @@ fun ReminderDetailScreen(
                 Text("Completado")
             }
 
-            // Botón Multimedia unificado y Controles de Audio
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -285,7 +286,6 @@ fun ReminderDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            // Botón de Pausa/Reanudar (Solo Android N+)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                                 IconButton(
                                     onClick = {
@@ -308,7 +308,6 @@ fun ReminderDetailScreen(
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     } else {
-                                        // Usamos texto "||" como icono de pausa
                                         Text(
                                             "||",
                                             fontWeight = FontWeight.Bold,
@@ -319,7 +318,6 @@ fun ReminderDetailScreen(
                                 }
                             }
 
-                            // Botón de Stop (Finalizar)
                             Button(
                                 onClick = {
                                     recorder.stopRecording()
@@ -384,6 +382,7 @@ fun ReminderDetailScreen(
             }
 
             if (attachmentUris.isNotEmpty()) {
+                Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.heightIn(max = 200.dp)
