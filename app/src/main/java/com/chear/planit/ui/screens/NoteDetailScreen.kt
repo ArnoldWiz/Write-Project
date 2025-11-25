@@ -3,6 +3,7 @@ package com.chear.planit.ui.screens
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -13,11 +14,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Note
@@ -55,7 +58,6 @@ fun NoteDetailScreen(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
             uri?.let {
-                // SOLUCIÓN: Pedir permiso persistente para leer el archivo a largo plazo
                 try {
                     val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
                     context.contentResolver.takePersistableUriPermission(it, takeFlags)
@@ -92,6 +94,9 @@ fun NoteDetailScreen(
     // Audio
     val recorder = remember { AudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
+    // Nuevo estado para saber si está pausado
+    var isPaused by remember { mutableStateOf(false) }
+
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
@@ -99,11 +104,12 @@ fun NoteDetailScreen(
                 if (isRecording) {
                     recorder.stopRecording()
                     isRecording = false
+                    isPaused = false
                 } else {
                     val file = recorder.startRecording()
                     if (file != null) {
                         isRecording = true
-                        // Guardamos el archivo de audio en la lista
+                        isPaused = false
                         noteViewModel.addAttachment(file.toUri().toString())
                     }
                 }
@@ -178,22 +184,69 @@ fun NoteDetailScreen(
                 Text("Fecha de creación: $formattedDate")
             }
 
-            // Botón Multimedia unificado
+            // Botón Multimedia unificado y Controles de Audio
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 if (isRecording) {
-                    Button(
-                        onClick = {
-                            recorder.stopRecording()
-                            isRecording = false
-                        },
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                        modifier = Modifier.size(64.dp)
-                    ) {
-                        Icon(Icons.Default.Clear, contentDescription = "Detener grabación")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (isPaused) "Pausado" else "Grabando...",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            // Botón de Pausa/Reanudar (Solo Android N+)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                IconButton(
+                                    onClick = {
+                                        if (isPaused) {
+                                            recorder.resumeRecording()
+                                            isPaused = false
+                                        } else {
+                                            recorder.pauseRecording()
+                                            isPaused = true
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .padding(4.dp)
+                                ) {
+                                    if (isPaused) {
+                                        Icon(
+                                            Icons.Default.PlayArrow,
+                                            contentDescription = "Reanudar",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else {
+                                        // Usamos texto "||" como icono de pausa
+                                        Text(
+                                            "||",
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.titleLarge
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Botón de Stop (Finalizar)
+                            Button(
+                                onClick = {
+                                    recorder.stopRecording()
+                                    isRecording = false
+                                    isPaused = false
+                                },
+                                shape = CircleShape,
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                modifier = Modifier.size(64.dp)
+                            ) {
+                                Icon(Icons.Default.Clear, contentDescription = "Detener grabación")
+                            }
+                        }
                     }
                 } else {
                     Button(
@@ -245,7 +298,6 @@ fun NoteDetailScreen(
             }
 
             if (attachmentUris.isNotEmpty()) {
-                Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.heightIn(max = 200.dp)
