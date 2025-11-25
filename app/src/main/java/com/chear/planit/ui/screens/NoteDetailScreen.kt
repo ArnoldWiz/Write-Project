@@ -20,9 +20,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Note
+import com.chear.planit.ui.components.AttachmentItem
 import com.chear.planit.utils.AudioRecorder
 import com.chear.planit.utils.FileUtils
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -48,9 +48,6 @@ fun NoteDetailScreen(
     val noteTitle by noteViewModel.noteTitle
     val noteBody by noteViewModel.noteBody
     val attachmentUris by noteViewModel.attachmentUris
-
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     // Selector de Archivos
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
@@ -82,38 +79,6 @@ fun NoteDetailScreen(
         }
     )
 
-    // Lanzador de permisos para la cámara (para fotos)
-    val requestCameraForPhotoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (isGranted) {
-                val uri = FileUtils.createImageFile(context)
-                tempPhotoUri = uri
-                cameraLauncher.launch(uri)
-            } else {
-                scope.launch {
-                    snackbarHostState.showSnackbar("El permiso de la cámara es necesario para tomar fotos.")
-                }
-            }
-        }
-    )
-
-    // Lanzador de permisos para la cámara (para videos)
-    val requestCameraForVideoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (isGranted) {
-                val uri = FileUtils.createVideoFile(context)
-                tempVideoUri = uri
-                videoLauncher.launch(uri)
-            } else {
-                scope.launch {
-                    snackbarHostState.showSnackbar("El permiso de la cámara es necesario para grabar videos.")
-                }
-            }
-        }
-    )
-
     // Audio
     val recorder = remember { AudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
@@ -128,12 +93,9 @@ fun NoteDetailScreen(
                     val file = recorder.startRecording()
                     if (file != null) {
                         isRecording = true
+                        // Guardamos el archivo de audio en la lista
                         noteViewModel.addAttachment(file.toUri().toString())
                     }
-                }
-            } else {
-                scope.launch {
-                    snackbarHostState.showSnackbar("El permiso del micrófono es necesario para grabar audio.")
                 }
             }
         }
@@ -145,7 +107,6 @@ fun NoteDetailScreen(
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editar Nota" else "Nueva Nota") },
@@ -248,14 +209,18 @@ fun NoteDetailScreen(
                             text = { Text("Tomar foto") },
                             onClick = {
                                 showMenu = false
-                                requestCameraForPhotoLauncher.launch(Manifest.permission.CAMERA)
+                                val uri = FileUtils.createImageFile(context)
+                                tempPhotoUri = uri
+                                cameraLauncher.launch(uri)
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Grabar video") },
                             onClick = {
                                 showMenu = false
-                                requestCameraForVideoLauncher.launch(Manifest.permission.CAMERA)
+                                val uri = FileUtils.createVideoFile(context)
+                                tempVideoUri = uri
+                                videoLauncher.launch(uri)
                             }
                         )
                         DropdownMenuItem(
@@ -276,23 +241,11 @@ fun NoteDetailScreen(
                     modifier = Modifier.heightIn(max = 200.dp)
                 ) {
                     items(attachmentUris) { uri ->
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(8.dp).fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = uri.toUri().lastPathSegment ?: "Archivo desconocido",
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                IconButton(onClick = { noteViewModel.removeAttachment(uri) }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
-                                }
-                            }
-                        }
+                        // USAMOS EL NUEVO COMPONENTE AQUÍ
+                        AttachmentItem(
+                            uriString = uri,
+                            onRemove = { noteViewModel.removeAttachment(uri) }
+                        )
                     }
                 }
             }

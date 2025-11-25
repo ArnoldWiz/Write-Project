@@ -34,6 +34,7 @@ import com.chear.planit.data.Note
 import com.chear.planit.data.NoteRepository
 import com.chear.planit.data.Reminder
 import com.chear.planit.data.ReminderRepository
+import com.chear.planit.ui.components.AttachmentItem
 import com.chear.planit.ui.screens.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -310,9 +311,14 @@ fun NoteDetailPane(
                 modifier = Modifier.heightIn(max = 150.dp)
             ) {
                 items(note.attachmentUris) { uri ->
-                    Text(
-                        text = "• ${uri.toUri().lastPathSegment ?: "Archivo"}",
-                        style = MaterialTheme.typography.bodySmall
+                    // USAMOS EL NUEVO COMPONENTE AQUÍ TAMBIÉN
+                    AttachmentItem(
+                        uriString = uri,
+                        onRemove = { 
+                            // En el modo de solo lectura, quizás no queramos permitir borrar directamente,
+                            // o si lo permitimos, necesitaríamos pasar el ViewModel.
+                            // Por simplicidad visual, pasamos una lambda vacía, pero lo ideal sería ocultar el botón de borrar.
+                        }
                     )
                 }
             }
@@ -354,9 +360,12 @@ fun ReminderDetailPane(
                 modifier = Modifier.heightIn(max = 150.dp)
             ) {
                 items(reminder.attachmentUris) { uri ->
-                    Text(
-                        text = "• ${uri.toUri().lastPathSegment ?: "Archivo"}",
-                        style = MaterialTheme.typography.bodySmall
+                    // USAMOS EL NUEVO COMPONENTE AQUÍ TAMBIÉN
+                    AttachmentItem(
+                        uriString = uri,
+                        onRemove = { 
+                            // Igual que en las notas, en modo lectura no borramos
+                        }
                     )
                 }
             }

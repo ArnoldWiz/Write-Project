@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.chear.planit.data.Reminder
+import com.chear.planit.ui.components.AttachmentItem
 import com.chear.planit.utils.AudioRecorder
 import com.chear.planit.utils.FileUtils
 import java.text.SimpleDateFormat
@@ -131,9 +131,9 @@ fun ReminderDetailScreen(
                         onClick = {
                             if (reminderTitle.isNotBlank() || reminderDescription.isNotBlank()) {
                                 if (isEditing && reminderToEdit != null) {
-                                    reminderViewModel.update(reminderToEdit, context)
+                                    reminderViewModel.update(reminderToEdit, context) // Corrección: Pasamos el contexto
                                 } else {
-                                    reminderViewModel.addReminder(context)
+                                    reminderViewModel.addReminder(context) // Corrección: Pasamos el contexto
                                 }
                             }
                             reminderViewModel.clearReminderFields()
@@ -141,15 +141,6 @@ fun ReminderDetailScreen(
                         }
                     ) {
                         Text("Guardar")
-                    }
-                    if (isEditing && reminderToEdit != null) {
-                        IconButton(onClick = {
-                            reminderViewModel.delete(reminderToEdit, context)
-                            reminderViewModel.clearReminderFields()
-                            onNavigateBack()
-                        }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar")
-                        }
                     }
                 }
             )
@@ -335,23 +326,11 @@ fun ReminderDetailScreen(
                     modifier = Modifier.heightIn(max = 200.dp)
                 ) {
                     items(attachmentUris) { uri ->
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(8.dp).fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = uri.toUri().lastPathSegment ?: "Archivo desconocido",
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                IconButton(onClick = { reminderViewModel.removeAttachment(uri) }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
-                                }
-                            }
-                        }
+                        // USAMOS EL NUEVO COMPONENTE AQUÍ
+                        AttachmentItem(
+                            uriString = uri,
+                            onRemove = { reminderViewModel.removeAttachment(uri) }
+                        )
                     }
                 }
             }
