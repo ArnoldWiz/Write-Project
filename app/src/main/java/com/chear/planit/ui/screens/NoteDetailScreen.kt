@@ -1,6 +1,7 @@
 package com.chear.planit.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,7 +54,16 @@ fun NoteDetailScreen(
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
-            noteViewModel.addAttachment(uri?.toString())
+            uri?.let {
+                // SOLUCIÓN: Pedir permiso persistente para leer el archivo a largo plazo
+                try {
+                    val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(it, takeFlags)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                noteViewModel.addAttachment(it.toString())
+            }
         }
     )
 
@@ -241,7 +251,6 @@ fun NoteDetailScreen(
                     modifier = Modifier.heightIn(max = 200.dp)
                 ) {
                     items(attachmentUris) { uri ->
-                        // USAMOS EL NUEVO COMPONENTE AQUÍ
                         AttachmentItem(
                             uriString = uri,
                             onRemove = { noteViewModel.removeAttachment(uri) }

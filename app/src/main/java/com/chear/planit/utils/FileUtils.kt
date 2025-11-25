@@ -13,6 +13,7 @@ object FileUtils {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFileName = "JPEG_" + timeStamp + "_"
         val storageDir = context.getExternalFilesDir("Pictures") ?: context.filesDir
+        if (!storageDir.exists()) storageDir.mkdirs() // Asegurar que el directorio existe
         val image = File.createTempFile(
             imageFileName,
             ".jpg",
@@ -29,6 +30,7 @@ object FileUtils {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val audioFileName = "AUDIO_" + timeStamp + "_"
         val storageDir = context.getExternalFilesDir("Music") ?: context.filesDir
+        if (!storageDir.exists()) storageDir.mkdirs() // Asegurar que el directorio existe
         return File.createTempFile(
             audioFileName,
             ".3gp",
@@ -40,6 +42,7 @@ object FileUtils {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val videoFileName = "VIDEO_" + timeStamp + "_"
         val storageDir = context.getExternalFilesDir("Movies") ?: context.filesDir
+        if (!storageDir.exists()) storageDir.mkdirs() // Asegurar que el directorio existe
         val video = File.createTempFile(
             videoFileName,
             ".mp4",

@@ -1,6 +1,7 @@
 package com.chear.planit.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,7 +56,16 @@ fun ReminderDetailScreen(
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
-            reminderViewModel.addAttachment(uri?.toString())
+            uri?.let {
+                // SOLUCIÓN: Pedir permiso persistente
+                try {
+                    val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(it, takeFlags)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                reminderViewModel.addAttachment(it.toString())
+            }
         }
     )
 
@@ -131,9 +141,9 @@ fun ReminderDetailScreen(
                         onClick = {
                             if (reminderTitle.isNotBlank() || reminderDescription.isNotBlank()) {
                                 if (isEditing && reminderToEdit != null) {
-                                    reminderViewModel.update(reminderToEdit, context) // Corrección: Pasamos el contexto
+                                    reminderViewModel.update(reminderToEdit, context)
                                 } else {
-                                    reminderViewModel.addReminder(context) // Corrección: Pasamos el contexto
+                                    reminderViewModel.addReminder(context)
                                 }
                             }
                             reminderViewModel.clearReminderFields()
@@ -326,7 +336,6 @@ fun ReminderDetailScreen(
                     modifier = Modifier.heightIn(max = 200.dp)
                 ) {
                     items(attachmentUris) { uri ->
-                        // USAMOS EL NUEVO COMPONENTE AQUÍ
                         AttachmentItem(
                             uriString = uri,
                             onRemove = { reminderViewModel.removeAttachment(uri) }

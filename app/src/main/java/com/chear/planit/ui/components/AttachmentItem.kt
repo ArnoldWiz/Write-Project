@@ -1,11 +1,14 @@
 package com.chear.planit.ui.components
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.webkit.MimeTypeMap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,9 +21,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.Locale
 
 @Composable
 fun AttachmentItem(
@@ -32,14 +38,50 @@ fun AttachmentItem(
     val fileName = remember(uri) { uri.lastPathSegment ?: "Archivo" }
     val mimeType = remember(uri) { context.contentResolver.getType(uri) }
     
-    // Determinamos el tipo de archivo basándonos en MIME o extensión
+    // Determinamos el tipo de archivo basándonos en MIME o extensión para mostrar el icono correcto
     val isImage = mimeType?.startsWith("image") == true || fileName.endsWith(".jpg") || fileName.endsWith(".png")
     val isVideo = mimeType?.startsWith("video") == true || fileName.endsWith(".mp4")
     val isAudio = mimeType?.startsWith("audio") == true || fileName.endsWith(".3gp") || fileName.endsWith(".mp3")
 
+    // Función para abrir el archivo con una app externa
+    fun openFile() {
+        try {
+            var finalUri = uri
+            // FIX 1: Si es un URI de tipo file:// (como los audios antiguos), lo convertimos a content:// seguro
+            if (uri.scheme == "file") {
+                val file = File(uri.path ?: "")
+                finalUri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+            }
+
+            // FIX 2: Intentar mejorar la detección del MimeType si es nulo
+            var finalMimeType = mimeType
+            if (finalMimeType == null) {
+                val extension = fileName.substringAfterLast('.', "")
+                if (extension.isNotEmpty()) {
+                    finalMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase(Locale.getDefault()))
+                }
+            }
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(finalUri, finalMimeType ?: "*/*") // */* es el comodín si todo falla
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "Abrir con"))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Podrías mostrar un Toast aquí si ocurre un error al abrir
+        }
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { openFile() } // Hacemos clickeable toda la tarjeta
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
