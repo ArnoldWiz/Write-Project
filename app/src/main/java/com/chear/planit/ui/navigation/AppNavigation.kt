@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.chear.planit.R
 import com.chear.planit.data.Note
 import com.chear.planit.data.NoteRepository
@@ -275,7 +276,8 @@ private fun androidx.navigation.NavGraphBuilder.detailRoutes(
         arguments = listOf(navArgument("idRecordatorio") {
             type = NavType.StringType
             nullable = true
-        })
+        }),
+        deepLinks = listOf(navDeepLink { uriPattern = "planit://${Ruts.DETAIL_REMINDER_SCREEN}/{idRecordatorio}" })
     ) { backStackEntry ->
         val idRecordatorio = backStackEntry.arguments?.getString("idRecordatorio")
         val reminderViewModel: ReminderViewModel = viewModel(factory = reminderViewModelFactory)

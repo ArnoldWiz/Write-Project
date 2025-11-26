@@ -11,4 +11,8 @@
     <string name="accept">Accept</string>
     <string name="second_confirm_delete">Are you sure you want to delete this item?</string>
     <string name="cancel">Cancel</string>
+    <string name="message_Exact_Alarm">IT´S TIME!</string>
+    <string name="edit_Note">Edit Note</string>
+    <string name="newNote">New Note</string>
+
 </resources>

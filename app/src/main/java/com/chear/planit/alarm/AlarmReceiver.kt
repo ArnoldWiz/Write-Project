@@ -7,6 +7,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -14,6 +17,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.chear.planit.MainActivity
 import com.chear.planit.R
+import com.chear.planit.ui.navigation.Ruts
 
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -53,16 +57,25 @@ class AlarmReceiver : BroadcastReceiver() {
                 contentText = message
             }
         }
+        val deepLinkUri = Uri.parse("planit://${Ruts.DETAIL_REMINDER_SCREEN}/$reminderId")
 
-        val tapIntent = Intent(context, MainActivity::class.java).apply {
+        val tapIntent = Intent(
+            Intent.ACTION_VIEW,
+            deepLinkUri,
+            context,
+            MainActivity::class.java
+        ).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
+        
         val tapPendingIntent = PendingIntent.getActivity(
             context,
             reminderId,
             tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
+        val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -72,6 +85,7 @@ class AlarmReceiver : BroadcastReceiver() {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(tapPendingIntent)
+            .setSound(alarmSound)
             .setAutoCancel(true)
 
         if (ActivityCompat.checkSelfPermission(
@@ -98,10 +112,18 @@ class AlarmReceiver : BroadcastReceiver() {
             val name = "Recordatorios de Plan It"
             val descriptionText = "Canal para las notificaciones de recordatorios"
             val importance = NotificationManager.IMPORTANCE_HIGH
+            
+            val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
                 enableLights(true)
                 enableVibration(true)
+                setSound(alarmSound, audioAttributes)
             }
             val notificationManager: NotificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

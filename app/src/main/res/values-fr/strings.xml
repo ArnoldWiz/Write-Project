@@ -12,4 +12,8 @@
     <string name="accept">Accepter</string>
     <string name="second_confirm_delete">Êtes-vous sûr de vouloir supprimer cet élément ?</string>
     <string name="cancel">Annuler</string>
+    <string name="message_Exact_Alarm">C´EST LE MOMENT</string>
+    <string name="edit_Note">Modifier la note</string>
+    <string name="newNote">Nouvelle note</string>
+
 </resources>

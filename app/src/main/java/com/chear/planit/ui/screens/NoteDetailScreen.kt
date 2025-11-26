@@ -22,7 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import com.chear.planit.R
 import com.chear.planit.data.Note
 import com.chear.planit.ui.components.AttachmentItem
 import com.chear.planit.utils.AudioRecorder
@@ -53,6 +55,14 @@ fun NoteDetailScreen(
     val noteBody by noteViewModel.noteBody
     val attachmentUris by noteViewModel.attachmentUris
 
+    // Función de comprobación de permisos
+    val hasPermission: (String) -> Boolean = { permission ->
+        ContextCompat.checkSelfPermission(
+            context,
+            permission
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
     // Selector de Archivos
     val pickAttachmentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -61,9 +71,7 @@ fun NoteDetailScreen(
                 try {
                     val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
                     context.contentResolver.takePersistableUriPermission(it, takeFlags)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                } catch (_: Exception) {}
                 noteViewModel.addAttachment(it.toString())
             }
         }
@@ -123,7 +131,7 @@ fun NoteDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditing) "Editar Nota" else "Nueva Nota") },
+                title = { Text(if (isEditing) context.getString(R.string.edit_Note) else context.getString(R.string.newNote)) },
                 navigationIcon = {
                     IconButton(onClick = {
                         noteViewModel.clearNoteFields()
@@ -218,7 +226,6 @@ fun NoteDetailScreen(
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     } else {
-                                        // Usamos texto "||" como icono de pausa
                                         Text(
                                             "||",
                                             fontWeight = FontWeight.Bold,
@@ -267,6 +274,7 @@ fun NoteDetailScreen(
                             text = { Text("Tomar foto") },
                             onClick = {
                                 showMenu = false
+                                if (!hasPermission(Manifest.permission.CAMERA)) return@DropdownMenuItem
                                 val uri = FileUtils.createImageFile(context)
                                 tempPhotoUri = uri
                                 cameraLauncher.launch(uri)
@@ -276,6 +284,7 @@ fun NoteDetailScreen(
                             text = { Text("Grabar video") },
                             onClick = {
                                 showMenu = false
+                                if (!hasPermission(Manifest.permission.CAMERA)) return@DropdownMenuItem
                                 val uri = FileUtils.createVideoFile(context)
                                 tempVideoUri = uri
                                 videoLauncher.launch(uri)

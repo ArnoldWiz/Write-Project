@@ -42,7 +42,7 @@ object FileUtils {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val videoFileName = "VIDEO_" + timeStamp + "_"
         val storageDir = context.getExternalFilesDir("Movies") ?: context.filesDir
-        if (!storageDir.exists()) storageDir.mkdirs() // Asegurar que el directorio existe
+        if (!storageDir.exists()) storageDir.mkdirs()
         val video = File.createTempFile(
             videoFileName,
             ".mp4",

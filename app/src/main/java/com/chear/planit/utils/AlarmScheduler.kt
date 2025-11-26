@@ -41,9 +41,9 @@ object AlarmScheduler {
 
          val exactPending = PendingIntent.getBroadcast(
             appContext,
-            reminderId, 
+            reminderId,
             exactIntent,
-            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val viewIntent = Intent(appContext, MainActivity::class.java).apply {
@@ -58,7 +58,7 @@ object AlarmScheduler {
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarm.canScheduleExactAlarms()) {
-                Log.e(TAG, "Cannot schedule exact alarms. Permission missing.")
+                Log.e(TAG, "Cannot schedule exact alarms. Permission missing. Falling back to inexact alarm.")
                 alarm.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, exactPending)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, viewPending)
@@ -81,6 +81,7 @@ object AlarmScheduler {
             }
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException scheduling alarm", e)
+            // Fallback for weird OEM restrictions
             alarm.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, exactPending)
         }
 
@@ -105,10 +106,11 @@ object AlarmScheduler {
                 appContext,
                 reminderId + 1000000, // Offset ID para diferenciar del exacto
                 dailyIntent,
-                PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
             try {
+                // Daily summaries don't need to be `setAlarmClock`, a regular exact alarm is fine.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     alarm.setExactAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
