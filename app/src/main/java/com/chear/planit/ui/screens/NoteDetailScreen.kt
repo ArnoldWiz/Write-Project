@@ -9,7 +9,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -29,6 +31,7 @@ import com.chear.planit.data.Note
 import com.chear.planit.ui.components.AttachmentItem
 import com.chear.planit.utils.AudioRecorder
 import com.chear.planit.utils.FileUtils
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -54,6 +57,14 @@ fun NoteDetailScreen(
     val noteTitle by noteViewModel.noteTitle
     val noteBody by noteViewModel.noteBody
     val attachmentUris by noteViewModel.attachmentUris
+
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Estados para controlar permisos y contadores de rechazo
+    var cameraPermissionDeniedCount by remember { mutableIntStateOf(0) }
+    var audioPermissionDeniedCount by remember { mutableIntStateOf(0) }
+    var pendingCameraAction by remember { mutableStateOf<String?>(null) }
 
     // Función de comprobación de permisos
     val hasPermission: (String) -> Boolean = { permission ->
@@ -99,6 +110,32 @@ fun NoteDetailScreen(
         }
     )
 
+    // Launcher de permisos de cámara
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                if (pendingCameraAction == "PHOTO") {
+                    val uri = FileUtils.createImageFile(context)
+                    tempPhotoUri = uri
+                    cameraLauncher.launch(uri)
+                } else if (pendingCameraAction == "VIDEO") {
+                    val uri = FileUtils.createVideoFile(context)
+                    tempVideoUri = uri
+                    videoLauncher.launch(uri)
+                }
+            } else {
+                cameraPermissionDeniedCount++
+                if (cameraPermissionDeniedCount >= 2) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                    }
+                }
+            }
+            pendingCameraAction = null
+        }
+    )
+
     // Audio
     val recorder = remember { AudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
@@ -120,6 +157,13 @@ fun NoteDetailScreen(
                         noteViewModel.addAttachment(file.toUri().toString())
                     }
                 }
+            } else {
+                audioPermissionDeniedCount++
+                if (audioPermissionDeniedCount >= 2) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                    }
+                }
             }
         }
     )
@@ -128,7 +172,10 @@ fun NoteDetailScreen(
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
 
+    val scrollState = rememberScrollState()
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) context.getString(R.string.edit_Note) else context.getString(R.string.newNote)) },
@@ -164,7 +211,8 @@ fun NoteDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingInterno)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -180,7 +228,7 @@ fun NoteDetailScreen(
                 label = { Text("Contenido") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .heightIn(min = 150.dp) // Altura mínima para el contenido
             )
 
             if (isEditing && noteToEdit != null) {
@@ -274,27 +322,51 @@ fun NoteDetailScreen(
                             text = { Text("Tomar foto") },
                             onClick = {
                                 showMenu = false
-                                if (!hasPermission(Manifest.permission.CAMERA)) return@DropdownMenuItem
-                                val uri = FileUtils.createImageFile(context)
-                                tempPhotoUri = uri
-                                cameraLauncher.launch(uri)
+                                if (hasPermission(Manifest.permission.CAMERA)) {
+                                    val uri = FileUtils.createImageFile(context)
+                                    tempPhotoUri = uri
+                                    cameraLauncher.launch(uri)
+                                } else {
+                                    if (cameraPermissionDeniedCount >= 2) {
+                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                    } else {
+                                        pendingCameraAction = "PHOTO"
+                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
+                                }
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Grabar video") },
                             onClick = {
                                 showMenu = false
-                                if (!hasPermission(Manifest.permission.CAMERA)) return@DropdownMenuItem
-                                val uri = FileUtils.createVideoFile(context)
-                                tempVideoUri = uri
-                                videoLauncher.launch(uri)
+                                if (hasPermission(Manifest.permission.CAMERA)) {
+                                    val uri = FileUtils.createVideoFile(context)
+                                    tempVideoUri = uri
+                                    videoLauncher.launch(uri)
+                                } else {
+                                    if (cameraPermissionDeniedCount >= 2) {
+                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                    } else {
+                                        pendingCameraAction = "VIDEO"
+                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
+                                }
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Grabar audio") },
                             onClick = {
                                 showMenu = false
-                                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                if (hasPermission(Manifest.permission.RECORD_AUDIO)) {
+                                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                } else {
+                                    if (audioPermissionDeniedCount >= 2) {
+                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                    } else {
+                                        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    }
+                                }
                             }
                         )
                     }
@@ -302,11 +374,11 @@ fun NoteDetailScreen(
             }
 
             if (attachmentUris.isNotEmpty()) {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 200.dp)
+                // No usamos LazyColumn aquí porque estamos dentro de un Column con scroll
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(attachmentUris) { uri ->
+                    attachmentUris.forEach { uri ->
                         AttachmentItem(
                             uriString = uri,
                             onRemove = { noteViewModel.removeAttachment(uri) }

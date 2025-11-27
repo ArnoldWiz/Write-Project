@@ -61,6 +61,10 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
     private val _reminderDateTime = mutableStateOf<Long?>(null)
     val reminderDateTime: State<Long?> = _reminderDateTime
 
+    // Nueva lista para fechas adicionales
+    private val _additionalDates = mutableStateOf<List<Long>>(emptyList())
+    val additionalDates: State<List<Long>> = _additionalDates
+
     private val _reminderCompleted = mutableStateOf(false)
     val reminderCompleted: State<Boolean> = _reminderCompleted
 
@@ -72,6 +76,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             _reminderTitle.value = reminder.title
             _reminderDescription.value = reminder.description
             _reminderDateTime.value = reminder.dateTime
+            _additionalDates.value = reminder.additionalDates
             _reminderCompleted.value = reminder.isCompleted
             _attachmentUris.value = reminder.attachmentUris
         } else {
@@ -83,6 +88,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         _reminderTitle.value = ""
         _reminderDescription.value = ""
         _reminderDateTime.value = null
+        _additionalDates.value = emptyList()
         _reminderCompleted.value = false
         _attachmentUris.value = emptyList()
     }
@@ -97,6 +103,18 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
 
     fun onDateTimeChange(newDateTime: Long?) {
         _reminderDateTime.value = newDateTime
+    }
+
+    fun addAdditionalDate(date: Long) {
+        val currentList = _additionalDates.value.toMutableList()
+        currentList.add(date)
+        _additionalDates.value = currentList
+    }
+
+    fun removeAdditionalDate(date: Long) {
+        val currentList = _additionalDates.value.toMutableList()
+        currentList.remove(date)
+        _additionalDates.value = currentList
     }
 
     fun onCompletedChange(isCompleted: Boolean) {
@@ -126,6 +144,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             title = _reminderTitle.value,
             description = _reminderDescription.value,
             dateTime = finalDateTime,
+            additionalDates = _additionalDates.value,
             isCompleted = _reminderCompleted.value,
             attachmentUris = _attachmentUris.value
         )
@@ -133,18 +152,25 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         Log.d(TAG, "Recordatorio guardado en BD con ID: $newId y fecha: $finalDateTime")
 
         if (!newReminder.isCompleted) {
-            val formattedTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(finalDateTime))
-            val currentTime = System.currentTimeMillis()
-            Log.d(TAG, "Fecha programada: $formattedTime ($finalDateTime). Actual: $currentTime")
-            
-            Log.d(TAG, "Llamando a AlarmScheduler para ID: $newId")
-            
+            // Alarma principal
             AlarmScheduler.schedule(
                 context = context,
                 reminderId = newId.toInt(),
                 triggerAtMillis = finalDateTime,
-                message = _reminderTitle.value
+                message = _reminderTitle.value,
+                parentReminderId = newId.toInt()
             )
+            // Alarmas adicionales
+            newReminder.additionalDates.forEachIndexed { index, date ->
+                val additionalId = (newId.toInt() * 100) + (index + 1)
+                AlarmScheduler.schedule(
+                    context = context,
+                    reminderId = additionalId,
+                    triggerAtMillis = date,
+                    message = "Aviso", // Mensaje "Aviso" para las adicionales
+                    parentReminderId = newId.toInt()
+                )
+            }
         } else {
             Log.d(TAG, "Recordatorio completado, no se programa alarma para ID: $newId")
         }
@@ -159,24 +185,41 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             title = _reminderTitle.value,
             description = _reminderDescription.value,
             dateTime = finalDateTime,
+            additionalDates = _additionalDates.value,
             isCompleted = _reminderCompleted.value,
             attachmentUris = _attachmentUris.value
         )
         repository.update(updatedReminder)
+        
+        AlarmScheduler.cancel(context, updatedReminder.id)
+        // Intento de cancelar posibles adicionales previas
+        for (i in 1..10) {
+            val possibleId = (updatedReminder.id * 100) + i
+            AlarmScheduler.cancel(context, possibleId)
+        }
 
         if (updatedReminder.isCompleted) {
             Log.d(TAG, "Recordatorio completado, cancelando alarma para ID: ${updatedReminder.id}")
-            AlarmScheduler.cancel(context, updatedReminder.id)
         } else {
-            val formattedTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(finalDateTime))
-            Log.d(TAG, "Reprogramando alarma para ID: ${updatedReminder.id} a las: $formattedTime")
-
+            // Alarma principal
             AlarmScheduler.schedule(
                 context = context,
                 reminderId = updatedReminder.id,
                 triggerAtMillis = finalDateTime,
-                message = _reminderTitle.value
+                message = _reminderTitle.value,
+                parentReminderId = updatedReminder.id
             )
+             // Alarmas adicionales
+            updatedReminder.additionalDates.forEachIndexed { index, date ->
+                val additionalId = (updatedReminder.id * 100) + (index + 1)
+                AlarmScheduler.schedule(
+                    context = context,
+                    reminderId = additionalId,
+                    triggerAtMillis = date,
+                    message = "Aviso", // Mensaje "Aviso" para las adicionales
+                    parentReminderId = updatedReminder.id
+                )
+            }
         }
     }
 
@@ -184,5 +227,10 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         Log.d(TAG, "Eliminando recordatorio ID: ${reminder.id}")
         repository.delete(reminder)
         AlarmScheduler.cancel(context, reminder.id)
+        // Cancelar adicionales
+        for (i in 1..10) {
+            val possibleId = (reminder.id * 100) + i
+            AlarmScheduler.cancel(context, possibleId)
+        }
     }
 }

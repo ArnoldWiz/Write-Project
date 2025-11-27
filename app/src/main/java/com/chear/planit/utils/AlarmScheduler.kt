@@ -20,7 +20,7 @@ object AlarmScheduler {
     private const val TAG = "AlarmScheduler"
 
     @SuppressLint("ScheduleExactAlarm")
-    fun schedule(context: Context, reminderId: Int, triggerAtMillis: Long, message: String) {
+    fun schedule(context: Context, reminderId: Int, triggerAtMillis: Long, message: String, parentReminderId: Int? = null) {
         val appContext = context.applicationContext
         val alarm = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -31,10 +31,13 @@ object AlarmScheduler {
             Log.w(TAG, "Trying to schedule alarm in the past. Ignoring exact alarm.")
         }
 
+        val targetId = parentReminderId ?: reminderId
+
         // -- 1. Alarma para la Hora Exacta --
         val exactIntent = Intent(appContext, AlarmReceiver::class.java).apply {
             action = ALARM_ACTION
-            putExtra("reminder_id", reminderId)
+            putExtra("reminder_id", reminderId) // ID único de la alarma para notificaciones
+            putExtra("target_reminder_id", targetId) // ID del recordatorio padre para navegación
             putExtra("message", message)
             putExtra(AlarmReceiver.NOTIFICATION_TYPE_EXTRA, AlarmReceiver.TYPE_EXACT_TIME)
         }
@@ -98,6 +101,7 @@ object AlarmScheduler {
             val dailyIntent = Intent(appContext, AlarmReceiver::class.java).apply {
                 action = ALARM_ACTION
                 putExtra("reminder_id", reminderId)
+                putExtra("target_reminder_id", targetId)
                 putExtra("message", message)
                 putExtra(AlarmReceiver.NOTIFICATION_TYPE_EXTRA, AlarmReceiver.TYPE_DAILY_SUMMARY)
             }

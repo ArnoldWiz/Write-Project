@@ -10,6 +10,7 @@ data class Reminder(
     val title: String,
     val description: String,
     val dateTime: Long,
+    val additionalDates: List<Long> = emptyList(),
     val isCompleted: Boolean = false,
     val attachmentUris: List<String> = emptyList()
 )

@@ -9,10 +9,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -22,11 +26,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.chear.planit.data.Reminder
 import com.chear.planit.ui.components.AttachmentItem
 import com.chear.planit.utils.AudioRecorder
 import com.chear.planit.utils.FileUtils
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -52,8 +58,25 @@ fun ReminderDetailScreen(
     val reminderTitle by reminderViewModel.reminderTitle
     val reminderDescription by reminderViewModel.reminderDescription
     val reminderDateTime by reminderViewModel.reminderDateTime
+    val additionalDates by reminderViewModel.additionalDates
     val reminderCompleted by reminderViewModel.reminderCompleted
     val attachmentUris by reminderViewModel.attachmentUris
+
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Estados para controlar permisos y contadores de rechazo
+    var cameraPermissionDeniedCount by remember { mutableIntStateOf(0) }
+    var audioPermissionDeniedCount by remember { mutableIntStateOf(0) }
+    var pendingCameraAction by remember { mutableStateOf<String?>(null) }
+
+    // Función de comprobación de permisos
+    val hasPermission: (String) -> Boolean = { permission ->
+        ContextCompat.checkSelfPermission(
+            context,
+            permission
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
 
     // Inicializamos dateTime con el momento actual si es null
     LaunchedEffect(Unit) {
@@ -100,6 +123,32 @@ fun ReminderDetailScreen(
         }
     )
 
+    // Launcher de permisos de cámara
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                if (pendingCameraAction == "PHOTO") {
+                    val uri = FileUtils.createImageFile(context)
+                    tempPhotoUri = uri
+                    cameraLauncher.launch(uri)
+                } else if (pendingCameraAction == "VIDEO") {
+                    val uri = FileUtils.createVideoFile(context)
+                    tempVideoUri = uri
+                    videoLauncher.launch(uri)
+                }
+            } else {
+                cameraPermissionDeniedCount++
+                if (cameraPermissionDeniedCount >= 2) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                    }
+                }
+            }
+            pendingCameraAction = null
+        }
+    )
+
     // Audio
     val recorder = remember { AudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
@@ -121,6 +170,13 @@ fun ReminderDetailScreen(
                         reminderViewModel.addAttachment(file.toUri().toString())
                     }
                 }
+            } else {
+                audioPermissionDeniedCount++
+                if (audioPermissionDeniedCount >= 2) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                    }
+                }
             }
         }
     )
@@ -130,13 +186,22 @@ fun ReminderDetailScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
+    // Variables para el selector de fechas adicionales
+    var showAdditionalDatePicker by remember { mutableStateOf(false) }
+    var showAdditionalTimePicker by remember { mutableStateOf(false) }
+    val additionalCalendar = remember { Calendar.getInstance() }
+
     val calendar = remember { Calendar.getInstance() }
     reminderDateTime?.let { calendar.timeInMillis = it }
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
     val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val fullDateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+
+    val scrollState = rememberScrollState()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "Editar Recordatorio" else "Nuevo Recordatorio") },
@@ -172,7 +237,8 @@ fun ReminderDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -197,6 +263,38 @@ fun ReminderDetailScreen(
                 Text(timeFormatter.format(calendar.time))
             }
 
+            // Sección de Fechas Adicionales (Cambiado a "Avisos")
+            Text("Avisos:", style = MaterialTheme.typography.titleSmall)
+            
+            // Usamos Column en lugar de LazyColumn dentro de un scrollable Column
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                additionalDates.forEach { date ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(fullDateFormatter.format(Date(date)))
+                        IconButton(onClick = { reminderViewModel.removeAdditionalDate(date) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar aviso")
+                        }
+                    }
+                }
+                
+                Button(
+                    onClick = { showAdditionalDatePicker = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Agregar aviso")
+                }
+            }
+
+            // Date Picker Principal
             if (showDatePicker) {
                 val datePickerState = rememberDatePickerState(initialSelectedDateMillis = reminderDateTime ?: System.currentTimeMillis())
                 DatePickerDialog(
@@ -205,10 +303,8 @@ fun ReminderDetailScreen(
                         TextButton(
                             onClick = {
                                 datePickerState.selectedDateMillis?.let { millis ->
-                                    // SOLUCIÓN: Crear calendario UTC para obtener la fecha correcta
                                     val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
                                     utcCalendar.timeInMillis = millis
-                                    // Aplicar solo la FECHA al calendario local, manteniendo la HORA local
                                     calendar.set(
                                         utcCalendar.get(Calendar.YEAR),
                                         utcCalendar.get(Calendar.MONTH),
@@ -228,6 +324,7 @@ fun ReminderDetailScreen(
                 }
             }
 
+            // Time Picker Principal
             if (showTimePicker) {
                 val timePickerState = rememberTimePickerState(
                     initialHour = calendar.get(Calendar.HOUR_OF_DAY),
@@ -261,13 +358,78 @@ fun ReminderDetailScreen(
                 )
             }
 
+            // Date Picker Adicional (Avisos)
+             if (showAdditionalDatePicker) {
+                val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+                DatePickerDialog(
+                    onDismissRequest = { showAdditionalDatePicker = false },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                datePickerState.selectedDateMillis?.let { millis ->
+                                    val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                                    utcCalendar.timeInMillis = millis
+                                    additionalCalendar.set(
+                                        utcCalendar.get(Calendar.YEAR),
+                                        utcCalendar.get(Calendar.MONTH),
+                                        utcCalendar.get(Calendar.DAY_OF_MONTH)
+                                    )
+                                    // Una vez seleccionada la fecha, mostramos el selector de hora
+                                    showAdditionalDatePicker = false
+                                    showAdditionalTimePicker = true
+                                }
+                            }
+                        ) { Text("Siguiente") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showAdditionalDatePicker = false }) { Text("Cancelar") }
+                    }
+                ) {
+                    DatePicker(state = datePickerState)
+                }
+            }
+
+            // Time Picker Adicional (Avisos)
+            if (showAdditionalTimePicker) {
+                val timePickerState = rememberTimePickerState(
+                    initialHour = additionalCalendar.get(Calendar.HOUR_OF_DAY),
+                    initialMinute = additionalCalendar.get(Calendar.MINUTE),
+                    is24Hour = true
+                )
+                AlertDialog(
+                    onDismissRequest = { showAdditionalTimePicker = false },
+                    modifier = Modifier.fillMaxWidth(),
+                    title = { Text("Seleccionar Hora del Aviso", style = MaterialTheme.typography.titleLarge) },
+                    text = {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            TimePicker(state = timePickerState)
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                additionalCalendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                                additionalCalendar.set(Calendar.MINUTE, timePickerState.minute)
+                                additionalCalendar.set(Calendar.SECOND, 0)
+                                additionalCalendar.set(Calendar.MILLISECOND, 0)
+                                reminderViewModel.addAdditionalDate(additionalCalendar.timeInMillis)
+                                showAdditionalTimePicker = false
+                            }
+                        ) { Text("OK") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showAdditionalTimePicker = false }) { Text("Cancelar") }
+                    }
+                )
+            }
+
             OutlinedTextField(
                 value = reminderDescription,
                 onValueChange = { reminderViewModel.onDescriptionChange(it) },
                 label = { Text("Descripción") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .heightIn(min = 150.dp) // Altura mínima para el contenido
             )
 
             Row(
@@ -364,25 +526,51 @@ fun ReminderDetailScreen(
                             text = { Text("Tomar foto") },
                             onClick = {
                                 showMenu = false
-                                val uri = FileUtils.createImageFile(context)
-                                tempPhotoUri = uri
-                                cameraLauncher.launch(uri)
+                                if (hasPermission(Manifest.permission.CAMERA)) {
+                                    val uri = FileUtils.createImageFile(context)
+                                    tempPhotoUri = uri
+                                    cameraLauncher.launch(uri)
+                                } else {
+                                    if (cameraPermissionDeniedCount >= 2) {
+                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                    } else {
+                                        pendingCameraAction = "PHOTO"
+                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
+                                }
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Grabar video") },
                             onClick = {
                                 showMenu = false
-                                val uri = FileUtils.createVideoFile(context)
-                                tempVideoUri = uri
-                                videoLauncher.launch(uri)
+                                if (hasPermission(Manifest.permission.CAMERA)) {
+                                    val uri = FileUtils.createVideoFile(context)
+                                    tempVideoUri = uri
+                                    videoLauncher.launch(uri)
+                                } else {
+                                    if (cameraPermissionDeniedCount >= 2) {
+                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                    } else {
+                                        pendingCameraAction = "VIDEO"
+                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
+                                }
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Grabar audio") },
                             onClick = {
                                 showMenu = false
-                                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                if (hasPermission(Manifest.permission.RECORD_AUDIO)) {
+                                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                } else {
+                                    if (audioPermissionDeniedCount >= 2) {
+                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                    } else {
+                                        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    }
+                                }
                             }
                         )
                     }
@@ -391,11 +579,10 @@ fun ReminderDetailScreen(
 
             if (attachmentUris.isNotEmpty()) {
                 Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 200.dp)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(attachmentUris) { uri ->
+                    attachmentUris.forEach { uri ->
                         AttachmentItem(
                             uriString = uri,
                             onRemove = { reminderViewModel.removeAttachment(uri) }
