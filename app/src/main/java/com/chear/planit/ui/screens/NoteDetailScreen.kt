@@ -378,10 +378,13 @@ fun NoteDetailScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    attachmentUris.forEach { uri ->
+                    attachmentUris.forEach { attachment ->
                         AttachmentItem(
-                            uriString = uri,
-                            onRemove = { noteViewModel.removeAttachment(uri) }
+                            attachment = attachment,
+                            onRemove = { noteViewModel.removeAttachment(attachment.uri) },
+                            onDescriptionChange = { newDescription ->
+                                noteViewModel.updateAttachmentDescription(attachment.uri, newDescription)
+                            }
                         )
                     }
                 }

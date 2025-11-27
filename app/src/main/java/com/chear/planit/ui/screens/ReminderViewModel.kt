@@ -6,6 +6,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chear.planit.data.Attachment
 import com.chear.planit.data.Reminder
 import com.chear.planit.data.ReminderRepository
 import com.chear.planit.utils.AlarmScheduler
@@ -39,7 +40,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             } else {
                 reminders.filter {
                     it.title.contains(query, ignoreCase = true) ||
-                            (it.description?.contains(query, ignoreCase = true) ?: false)
+                            (it.description.contains(query, ignoreCase = true))
                 }
             }
         }
@@ -68,8 +69,9 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
     private val _reminderCompleted = mutableStateOf(false)
     val reminderCompleted: State<Boolean> = _reminderCompleted
 
-    private val _attachmentUris = mutableStateOf<List<String>>(emptyList())
-    val attachmentUris: State<List<String>> = _attachmentUris
+    // Usamos ahora List<Attachment>
+    private val _attachmentUris = mutableStateOf<List<Attachment>>(emptyList())
+    val attachmentUris: State<List<Attachment>> = _attachmentUris
 
     fun loadReminder(reminder: Reminder?) {
         if (reminder != null) {
@@ -78,7 +80,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             _reminderDateTime.value = reminder.dateTime
             _additionalDates.value = reminder.additionalDates
             _reminderCompleted.value = reminder.isCompleted
-            _attachmentUris.value = reminder.attachmentUris
+            _attachmentUris.value = reminder.attachments
         } else {
             clearReminderFields()
         }
@@ -124,14 +126,25 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
     fun addAttachment(newUri: String?) {
         newUri?.let {
             val currentList = _attachmentUris.value.toMutableList()
-            currentList.add(it)
+            currentList.add(Attachment(uri = it))
             _attachmentUris.value = currentList
         }
     }
 
     fun removeAttachment(uriToRemove: String) {
         val currentList = _attachmentUris.value.toMutableList()
-        currentList.remove(uriToRemove)
+        currentList.removeAll { it.uri == uriToRemove }
+        _attachmentUris.value = currentList
+    }
+
+    fun updateAttachmentDescription(uri: String, newDescription: String) {
+        val currentList = _attachmentUris.value.map {
+            if (it.uri == uri) {
+                it.copy(description = newDescription)
+            } else {
+                it
+            }
+        }
         _attachmentUris.value = currentList
     }
 
@@ -146,7 +159,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             dateTime = finalDateTime,
             additionalDates = _additionalDates.value,
             isCompleted = _reminderCompleted.value,
-            attachmentUris = _attachmentUris.value
+            attachments = _attachmentUris.value
         )
         val newId = repository.insert(newReminder)
         Log.d(TAG, "Recordatorio guardado en BD con ID: $newId y fecha: $finalDateTime")
@@ -167,7 +180,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
                     context = context,
                     reminderId = additionalId,
                     triggerAtMillis = date,
-                    message = "Aviso", // Mensaje "Aviso" para las adicionales
+                    message = "Aviso: ${_reminderTitle.value}", // Mensaje "Aviso" para las adicionales
                     parentReminderId = newId.toInt()
                 )
             }
@@ -187,7 +200,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
             dateTime = finalDateTime,
             additionalDates = _additionalDates.value,
             isCompleted = _reminderCompleted.value,
-            attachmentUris = _attachmentUris.value
+            attachments = _attachmentUris.value
         )
         repository.update(updatedReminder)
         
@@ -216,7 +229,7 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
                     context = context,
                     reminderId = additionalId,
                     triggerAtMillis = date,
-                    message = "Aviso", // Mensaje "Aviso" para las adicionales
+                    message = "Aviso: ${_reminderTitle.value}", // Mensaje "Aviso" para las adicionales
                     parentReminderId = updatedReminder.id
                 )
             }

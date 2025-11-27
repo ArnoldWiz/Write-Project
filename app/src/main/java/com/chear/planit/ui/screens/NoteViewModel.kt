@@ -4,6 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chear.planit.data.Attachment
 import com.chear.planit.data.Note
 import com.chear.planit.data.NoteRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,16 +54,16 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     private val _noteBody = mutableStateOf("")
     val noteBody: State<String> = _noteBody
 
-    // Ahora usamos una lista de Strings
-    private val _attachmentUris = mutableStateOf<List<String>>(emptyList())
-    val attachmentUris: State<List<String>> = _attachmentUris
+    // Ahora usamos una lista de Attachment
+    private val _attachmentUris = mutableStateOf<List<Attachment>>(emptyList())
+    val attachmentUris: State<List<Attachment>> = _attachmentUris
 
     // Cargar los datos de una nota existente en el estado del ViewModel
     fun loadNote(note: Note?) {
         if (note != null) {
             _noteTitle.value = note.title
             _noteBody.value = note.body
-            _attachmentUris.value = note.attachmentUris
+            _attachmentUris.value = note.attachments
         } else {
             clearNoteFields()
         }
@@ -88,14 +89,25 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     fun addAttachment(newUri: String?) {
         newUri?.let {
             val currentList = _attachmentUris.value.toMutableList()
-            currentList.add(it)
+            currentList.add(Attachment(uri = it))
             _attachmentUris.value = currentList
         }
     }
 
     fun removeAttachment(uriToRemove: String) {
         val currentList = _attachmentUris.value.toMutableList()
-        currentList.remove(uriToRemove)
+        currentList.removeAll { it.uri == uriToRemove }
+        _attachmentUris.value = currentList
+    }
+
+    fun updateAttachmentDescription(uri: String, newDescription: String) {
+        val currentList = _attachmentUris.value.map {
+            if (it.uri == uri) {
+                it.copy(description = newDescription)
+            } else {
+                it
+            }
+        }
         _attachmentUris.value = currentList
     }
 
@@ -104,7 +116,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         val newNote = Note(
             title = _noteTitle.value,
             body = _noteBody.value,
-            attachmentUris = _attachmentUris.value
+            attachments = _attachmentUris.value
         )
         repository.insert(newNote)
     }
@@ -113,7 +125,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         val updatedNote = noteToUpdate.copy(
             title = _noteTitle.value,
             body = _noteBody.value,
-            attachmentUris = _attachmentUris.value
+            attachments = _attachmentUris.value
         )
         repository.update(updatedNote)
     }

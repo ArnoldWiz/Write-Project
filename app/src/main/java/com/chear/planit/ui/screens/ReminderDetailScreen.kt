@@ -582,10 +582,13 @@ fun ReminderDetailScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    attachmentUris.forEach { uri ->
+                    attachmentUris.forEach { attachment ->
                         AttachmentItem(
-                            uriString = uri,
-                            onRemove = { reminderViewModel.removeAttachment(uri) }
+                            attachment = attachment,
+                            onRemove = { reminderViewModel.removeAttachment(attachment.uri) },
+                            onDescriptionChange = { newDescription ->
+                                reminderViewModel.updateAttachmentDescription(attachment.uri, newDescription)
+                            }
                         )
                     }
                 }

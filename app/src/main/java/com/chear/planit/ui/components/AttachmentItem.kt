@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import com.chear.planit.data.Attachment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -30,13 +31,17 @@ import java.util.Locale
 
 @Composable
 fun AttachmentItem(
-    uriString: String,
-    onRemove: () -> Unit
+    attachment: Attachment,
+    onRemove: () -> Unit,
+    onDescriptionChange: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val uri = remember(uriString) { uriString.toUri() }
+    val uri = remember(attachment.uri) { attachment.uri.toUri() }
     val fileName = remember(uri) { uri.lastPathSegment ?: "Archivo" }
     val mimeType = remember(uri) { context.contentResolver.getType(uri) }
+    
+    var isEditingDescription by remember { mutableStateOf(false) }
+    var tempDescription by remember { mutableStateOf(attachment.description) }
     
     val isImage = mimeType?.startsWith("image") == true || fileName.endsWith(".jpg") || fileName.endsWith(".png")
     val isVideo = mimeType?.startsWith("video") == true || fileName.endsWith(".mp4")
@@ -76,80 +81,118 @@ fun AttachmentItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { openFile() }
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(8.dp)
-        ) {
-            Box(
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .size(50.dp)
-                    .padding(end = 8.dp),
-                contentAlignment = Alignment.Center
+                    .padding(8.dp)
+                    .clickable { openFile() }
             ) {
-                when {
-                    isImage -> {
-                        var bitmap by remember { mutableStateOf<Bitmap?>(null) }
-                        LaunchedEffect(uri) {
-                            bitmap = loadThumbnail(context, uri)
-                        }
-                        
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap!!.asImageBitmap(),
-                                contentDescription = "Vista previa imagen",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Icon(Icons.Default.Face, contentDescription = "Imagen")
-                        }
-                    }
-                    isVideo -> {
-                        var videoBitmap by remember { mutableStateOf<Bitmap?>(null) }
-                        LaunchedEffect(uri) {
-                            videoBitmap = loadVideoThumbnail(context, uri)
-                        }
-
-                        if (videoBitmap != null) {
-                            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .padding(end = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        isImage -> {
+                            var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+                            LaunchedEffect(uri) {
+                                bitmap = loadThumbnail(context, uri)
+                            }
+                            
+                            if (bitmap != null) {
                                 Image(
-                                    bitmap = videoBitmap!!.asImageBitmap(),
-                                    contentDescription = "Vista previa video",
+                                    bitmap = bitmap!!.asImageBitmap(),
+                                    contentDescription = "Vista previa imagen",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
                                 )
-                                Icon(
-                                    Icons.Default.PlayArrow, 
-                                    contentDescription = null, 
-                                    tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                                    modifier = Modifier.size(24.dp)
-                                )
+                            } else {
+                                Icon(Icons.Default.Face, contentDescription = "Imagen")
                             }
-                        } else {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Video", modifier = Modifier.size(32.dp))
+                        }
+                        isVideo -> {
+                            var videoBitmap by remember { mutableStateOf<Bitmap?>(null) }
+                            LaunchedEffect(uri) {
+                                videoBitmap = loadVideoThumbnail(context, uri)
+                            }
+
+                            if (videoBitmap != null) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Image(
+                                        bitmap = videoBitmap!!.asImageBitmap(),
+                                        contentDescription = "Vista previa video",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    Icon(
+                                        Icons.Default.PlayArrow, 
+                                        contentDescription = null, 
+                                        tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            } else {
+                                Icon(Icons.Default.PlayArrow, contentDescription = "Video", modifier = Modifier.size(32.dp))
+                            }
+                        }
+                        isAudio -> {
+                            Icon(Icons.Default.Phone, contentDescription = "Audio", modifier = Modifier.size(32.dp))
+                        }
+                        else -> {
+                            Icon(Icons.Default.List, contentDescription = "Archivo", modifier = Modifier.size(32.dp))
                         }
                     }
-                    isAudio -> {
-                        Icon(Icons.Default.Phone, contentDescription = "Audio", modifier = Modifier.size(32.dp))
-                    }
-                    else -> {
-                        Icon(Icons.Default.List, contentDescription = "Archivo", modifier = Modifier.size(32.dp))
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = fileName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (attachment.description.isNotBlank() && !isEditingDescription) {
+                        Text(
+                            text = attachment.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
+
+                IconButton(onClick = { isEditingDescription = !isEditingDescription }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar descripción")
+                }
+
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
+                }
             }
-
-            Text(
-                text = fileName,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Clear, contentDescription = "Quitar adjunto")
+            
+            if (isEditingDescription) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = tempDescription,
+                        onValueChange = { tempDescription = it },
+                        label = { Text("Descripción") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    IconButton(onClick = {
+                        onDescriptionChange(tempDescription)
+                        isEditingDescription = false
+                    }) {
+                        Icon(Icons.Default.Check, contentDescription = "Guardar descripción")
+                    }
+                }
             }
         }
     }

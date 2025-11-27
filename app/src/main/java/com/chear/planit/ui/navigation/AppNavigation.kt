@@ -306,16 +306,17 @@ fun NoteDetailPane(
         Text(text = note.title.ifBlank { "Sin título" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(text = note.body.ifBlank { "Sin contenido" }, style = MaterialTheme.typography.bodyLarge)
 
-        if (note.attachmentUris.isNotEmpty()) {
+        if (note.attachments.isNotEmpty()) { // Cambiado de attachmentUris a attachments
             Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.heightIn(max = 150.dp)
             ) {
-                items(note.attachmentUris) { uri ->
+                items(note.attachments) { attachment -> // Cambiado para usar attachments
                     AttachmentItem(
-                        uriString = uri,
-                        onRemove = { }
+                        attachment = attachment, // Cambiado para pasar el objeto Attachment
+                        onRemove = { },
+                        onDescriptionChange = { } // En modo solo lectura no guardamos cambios
                     )
                 }
             }
@@ -350,17 +351,17 @@ fun ReminderDetailPane(
         Text(text = dateFormatter.format(calendar.time), style = MaterialTheme.typography.labelLarge)
         Text(text = reminder.description.ifBlank { "Sin contenido" }, style = MaterialTheme.typography.bodyLarge)
 
-        if (reminder.attachmentUris.isNotEmpty()) {
+        if (reminder.attachments.isNotEmpty()) { // Cambiado de attachmentUris a attachments
             Text("Archivos adjuntos:", style = MaterialTheme.typography.titleSmall)
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.heightIn(max = 150.dp)
             ) {
-                items(reminder.attachmentUris) { uri ->
+                items(reminder.attachments) { attachment -> // Cambiado para usar attachments
                     AttachmentItem(
-                        uriString = uri,
-                        onRemove = {
-                        }
+                        attachment = attachment, // Cambiado para pasar el objeto Attachment
+                        onRemove = { },
+                        onDescriptionChange = { } // En modo solo lectura no guardamos cambios
                     )
                 }
             }

@@ -48,6 +48,8 @@ dependencies {
     kapt("androidx.room:room-compiler:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
 
+    implementation("com.google.code.gson:gson:2.10.1") // Gson
+
     implementation("androidx.compose.ui:ui-text-google-fonts:1.6.8")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
