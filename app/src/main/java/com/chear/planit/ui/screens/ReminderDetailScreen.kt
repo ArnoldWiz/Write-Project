@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -32,6 +33,7 @@ import com.chear.planit.data.Reminder
 import com.chear.planit.ui.components.AttachmentItem
 import com.chear.planit.utils.AudioRecorder
 import com.chear.planit.utils.FileUtils
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -142,6 +144,10 @@ fun ReminderDetailScreen(
                 if (cameraPermissionDeniedCount >= 2) {
                     scope.launch {
                         snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                        delay(1000)
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        intent.data = Uri.fromParts("package", context.packageName, null)
+                        context.startActivity(intent)
                     }
                 }
             }
@@ -175,6 +181,10 @@ fun ReminderDetailScreen(
                 if (audioPermissionDeniedCount >= 2) {
                     scope.launch {
                         snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                        delay(1000)
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        intent.data = Uri.fromParts("package", context.packageName, null)
+                        context.startActivity(intent)
                     }
                 }
             }
@@ -263,10 +273,8 @@ fun ReminderDetailScreen(
                 Text(timeFormatter.format(calendar.time))
             }
 
-            // Sección de Fechas Adicionales (Cambiado a "Avisos")
             Text("Avisos:", style = MaterialTheme.typography.titleSmall)
-            
-            // Usamos Column en lugar de LazyColumn dentro de un scrollable Column
+
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -294,7 +302,6 @@ fun ReminderDetailScreen(
                 }
             }
 
-            // Date Picker Principal
             if (showDatePicker) {
                 val datePickerState = rememberDatePickerState(initialSelectedDateMillis = reminderDateTime ?: System.currentTimeMillis())
                 DatePickerDialog(
@@ -324,7 +331,6 @@ fun ReminderDetailScreen(
                 }
             }
 
-            // Time Picker Principal
             if (showTimePicker) {
                 val timePickerState = rememberTimePickerState(
                     initialHour = calendar.get(Calendar.HOUR_OF_DAY),
@@ -358,7 +364,6 @@ fun ReminderDetailScreen(
                 )
             }
 
-            // Date Picker Adicional (Avisos)
              if (showAdditionalDatePicker) {
                 val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
                 DatePickerDialog(
@@ -389,7 +394,6 @@ fun ReminderDetailScreen(
                 }
             }
 
-            // Time Picker Adicional (Avisos)
             if (showAdditionalTimePicker) {
                 val timePickerState = rememberTimePickerState(
                     initialHour = additionalCalendar.get(Calendar.HOUR_OF_DAY),
@@ -429,7 +433,7 @@ fun ReminderDetailScreen(
                 label = { Text("Descripción") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 150.dp) // Altura mínima para el contenido
+                    .heightIn(min = 150.dp)
             )
 
             Row(
@@ -532,7 +536,13 @@ fun ReminderDetailScreen(
                                     cameraLauncher.launch(uri)
                                 } else {
                                     if (cameraPermissionDeniedCount >= 2) {
-                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                                            delay(5000)
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                            intent.data = Uri.fromParts("package", context.packageName, null)
+                                            context.startActivity(intent)
+                                        }
                                     } else {
                                         pendingCameraAction = "PHOTO"
                                         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -550,7 +560,13 @@ fun ReminderDetailScreen(
                                     videoLauncher.launch(uri)
                                 } else {
                                     if (cameraPermissionDeniedCount >= 2) {
-                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                                            delay(5000)
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                            intent.data = Uri.fromParts("package", context.packageName, null)
+                                            context.startActivity(intent)
+                                        }
                                     } else {
                                         pendingCameraAction = "VIDEO"
                                         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -566,7 +582,13 @@ fun ReminderDetailScreen(
                                     audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                 } else {
                                     if (audioPermissionDeniedCount >= 2) {
-                                        scope.launch { snackbarHostState.showSnackbar("Debe activar los permisos en la configuración") }
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Debe activar los permisos en la configuración")
+                                            delay(5000)
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                            intent.data = Uri.fromParts("package", context.packageName, null)
+                                            context.startActivity(intent)
+                                        }
                                     } else {
                                         audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     }

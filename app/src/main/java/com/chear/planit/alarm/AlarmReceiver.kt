@@ -34,7 +34,6 @@ class AlarmReceiver : BroadcastReceiver() {
 
         createNotificationChannel(context)
 
-        // Ahora extraemos también el target_reminder_id
         val reminderId = intent.getIntExtra("reminder_id", 0)
         val targetReminderId = intent.getIntExtra("target_reminder_id", reminderId) // Fallback a reminderId si no existe
         val message = intent.getStringExtra("message") ?: "Recordatorio"
@@ -59,8 +58,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 contentText = message
             }
         }
-        
-        // El deep link ahora usa targetReminderId para apuntar siempre al padre
+
         val deepLinkUri = Uri.parse("planit://${Ruts.DETAIL_REMINDER_SCREEN}/$targetReminderId")
 
         val tapIntent = Intent(
@@ -74,7 +72,7 @@ class AlarmReceiver : BroadcastReceiver() {
         
         val tapPendingIntent = PendingIntent.getActivity(
             context,
-            reminderId, // RequestCode único para que no se sobrescriba
+            reminderId,
             tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

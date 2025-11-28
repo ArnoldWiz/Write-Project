@@ -152,7 +152,6 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         Log.d(TAG, "Recordatorio guardado en BD con ID: $newId y fecha: $finalDateTime")
 
         if (!newReminder.isCompleted) {
-            // Alarma principal
             AlarmScheduler.schedule(
                 context = context,
                 reminderId = newId.toInt(),
@@ -160,14 +159,13 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
                 message = _reminderTitle.value,
                 parentReminderId = newId.toInt()
             )
-            // Alarmas adicionales
             newReminder.additionalDates.forEachIndexed { index, date ->
                 val additionalId = (newId.toInt() * 100) + (index + 1)
                 AlarmScheduler.schedule(
                     context = context,
                     reminderId = additionalId,
                     triggerAtMillis = date,
-                    message = "Aviso", // Mensaje "Aviso" para las adicionales
+                    message = "Aviso",
                     parentReminderId = newId.toInt()
                 )
             }
@@ -192,7 +190,6 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         repository.update(updatedReminder)
         
         AlarmScheduler.cancel(context, updatedReminder.id)
-        // Intento de cancelar posibles adicionales previas
         for (i in 1..10) {
             val possibleId = (updatedReminder.id * 100) + i
             AlarmScheduler.cancel(context, possibleId)
@@ -201,7 +198,6 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
         if (updatedReminder.isCompleted) {
             Log.d(TAG, "Recordatorio completado, cancelando alarma para ID: ${updatedReminder.id}")
         } else {
-            // Alarma principal
             AlarmScheduler.schedule(
                 context = context,
                 reminderId = updatedReminder.id,
@@ -209,14 +205,13 @@ class ReminderViewModel(private val repository: ReminderRepository) : ViewModel(
                 message = _reminderTitle.value,
                 parentReminderId = updatedReminder.id
             )
-             // Alarmas adicionales
             updatedReminder.additionalDates.forEachIndexed { index, date ->
                 val additionalId = (updatedReminder.id * 100) + (index + 1)
                 AlarmScheduler.schedule(
                     context = context,
                     reminderId = additionalId,
                     triggerAtMillis = date,
-                    message = "Aviso", // Mensaje "Aviso" para las adicionales
+                    message = "Aviso",
                     parentReminderId = updatedReminder.id
                 )
             }
