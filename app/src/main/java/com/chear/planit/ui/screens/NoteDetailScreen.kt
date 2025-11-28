@@ -240,7 +240,6 @@ fun NoteDetailScreen(
                     .fillMaxWidth()
                     .heightIn(min = 150.dp)
             )
-
             if (isEditing && noteToEdit != null) {
                 val formattedDate = remember(noteToEdit.date) {
                     dateFormatter.format(Date(noteToEdit.date))
